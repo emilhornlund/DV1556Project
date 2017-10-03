@@ -1,4 +1,5 @@
 #include "INode.h"
+#include <iostream>
 
 INode::INode(std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden) {
 	this->filename = filename;
@@ -11,17 +12,17 @@ INode::INode(std::string filename, unsigned short int protection, std::string cr
 	this->_isHidden = isHidden;
 
 	for (int i = 0; i < 10; i++) {
-		this->data[i] = NULL;
+		this->data[i] = new unsigned short int(0);
 	}
 }
 
 INode::~INode() {
-	/*for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 10; i++) {
 		if (this->data[i] != NULL) {
 			delete this->data[i];
 			this->data[i] = NULL;
 		}
-	}*/
+	}
 }
 
 std::string INode::getFilename() const {

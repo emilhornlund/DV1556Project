@@ -3,7 +3,9 @@
 
 FileSystem::FileSystem() {
 	//this->reset();
-
+	for (int i = 0; i < 25; i++) {
+		this->inodes[i] = NULL;
+	}
 	this->inodes[0] = new INode("/", 7, "root", "root", "/", 0, true);
 	this->currentINode = this->inodes[0];
 }

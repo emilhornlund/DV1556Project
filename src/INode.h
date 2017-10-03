@@ -23,7 +23,7 @@ private:
 
 public:
 	INode(std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden = false);
-	~INode();
+	virtual ~INode();
 
 	std::string getFilename() const;
 	void setFilename(const std::string filename);
