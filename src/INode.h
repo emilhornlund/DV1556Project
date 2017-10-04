@@ -49,6 +49,8 @@ public:
 	short int getFirstDataBlockIndex();
 
 	short int getNextDataBlockIndex();
+
+    bool setDataBlock (int blockIndex);
 };
 
 #endif

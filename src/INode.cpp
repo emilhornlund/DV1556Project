@@ -12,7 +12,7 @@ INode::INode(std::string filename, unsigned short int protection, std::string cr
 	this->_isHidden = isHidden;
 
 	for (int i = 0; i < 10; i++) {
-		this->data[i] = new unsigned short int(0);
+		this->data[i] = NULL;
 	}
 }
 
@@ -93,4 +93,16 @@ short int INode::getNextDataBlockIndex() {
 		return -1;
 	}
 	return *tmp;
+}
+
+bool INode::setDataBlock (int blockIndex) {
+    bool found = false;
+    for (int i = 0; i < 10 && !found; i++) {
+        if(this->data[i] == NULL) {
+            this->data[i] = new unsigned short int(blockIndex);
+            found = true;
+        }
+    }
+
+    return found;
 }

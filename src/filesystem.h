@@ -8,29 +8,40 @@ class INode;
 class FileSystem
 {
 private:
+
+    static const short int INT_MAX = 250;
     MemBlockDevice mMemblockDevice;
-    INode *inodes[25];
-    bool bitmapINodes[25];
-    bool bitmapData[250];
+
+
+    INode *inodes[INT_MAX];
+
+    short int bitmapInodeIndex;
+    short int bitmapDataIndex;
+    bool bitmapINodes[INT_MAX];
+    bool bitmapData[INT_MAX];
 
     INode *currentINode;
 
     void resetINodes();
     void resetBitmapINodes();
     void resetBitmapData();
+    void reset();
+    void init();
+
+    int findNextFreeInode();
+    int findNextFreeData();
+
+    int _appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize);
+
 public:
     FileSystem();
     ~FileSystem();
 
-    void reset();
-
+    void format();
 
     /* These API functions need to be implemented
 	   You are free to specify parameter lists and return values
     */
-
-    std::string getPWD() const;
-
     /* This function creates a file in the filesystem */
     // createFile(...)
 
@@ -50,6 +61,18 @@ public:
     // listDir(...);
 
     /* Add your own member-functions if needed */
+    std::string getPWD() const;
+    int createInode(std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden = false);
+
+    int appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize);
+    int writeData(int dataBlock, char* data);
+
+    int listDir (char** &directories);
+
+    //int openData()
+    //int readData()
+    //bool freeInode()
+    //bool freeData()
 };
 
 #endif // FILESYSTEM_H
