@@ -14,6 +14,7 @@ private:
 	std::string owner;
 	std::string pwd;
 	unsigned short int filesize;
+    unsigned short int parentInodeIndex;
 	bool _isHidden;
 	bool _isDir;
 
@@ -22,7 +23,7 @@ private:
 	unsigned short int blockIndex;
 
 public:
-	INode(std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden = false);
+	INode(unsigned short int parentInodeIndex, std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden = false);
 	virtual ~INode();
 
 	std::string getFilename() const;
@@ -51,6 +52,9 @@ public:
 	short int getNextDataBlockIndex();
 
     bool setDataBlock (int blockIndex);
+
+    unsigned short int getParentInodeIndex () const;
+    void setParentInodeIndex (unsigned short int parentInodeIndex);
 };
 
 #endif

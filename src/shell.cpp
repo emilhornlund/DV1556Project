@@ -133,16 +133,14 @@ std::string help() {
 
 /* Insert code for your shell functions and call them from the switch-case */
 void ls(FileSystem &fileSystem) {
-    char** directories = NULL;
-    int nrOfDirs = fileSystem.listDir(directories);
-    std::cout << "Directories: " << nrOfDirs << std::endl;
-    for (int i = 0; i < nrOfDirs; i++) {
-        std::string dir = directories[i];
-        std::cout << dir << std::endl;
-    }
+    std::string* directories = NULL;
+    int* inodes = NULL;
 
-    for (int i = 0; i < nrOfDirs; i++) {
-        delete directories[i];
-    }
+    int nrOfDirs = fileSystem.listDir(inodes, directories);
+
+    for (int i = 0; i < nrOfDirs; i++)
+        std::cout << inodes[i] << " | " << directories[i] << std::endl;
+
+    delete[] inodes;
     delete[] directories;
 }

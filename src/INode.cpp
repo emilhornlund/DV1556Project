@@ -1,15 +1,16 @@
 #include "INode.h"
 #include <iostream>
 
-INode::INode(std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden) {
-	this->filename = filename;
-	this->protection = protection;
-	this->creator = creator;
-	this->owner = owner;
-	this->pwd = pwd;
-	this->filesize = filesize;
-	this->_isDir = isDir;
-	this->_isHidden = isHidden;
+INode::INode(unsigned short int parentInodeIndex, std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden) {
+	this->parentInodeIndex  = parentInodeIndex;
+    this->filename          = filename;
+	this->protection        = protection;
+	this->creator           = creator;
+	this->owner             = owner;
+	this->pwd               = pwd;
+	this->filesize          = filesize;
+	this->_isDir            = isDir;
+	this->_isHidden         = isHidden;
 
 	for (int i = 0; i < 10; i++) {
 		this->data[i] = NULL;
@@ -105,4 +106,14 @@ bool INode::setDataBlock (int blockIndex) {
     }
 
     return found;
+}
+
+unsigned short int INode::getParentInodeIndex () const {
+    return this->parentInodeIndex;
+}
+
+void INode::setParentInodeIndex (unsigned short int parentInodeIndex) {
+    if (parentInodeIndex < 0 || parentInodeIndex > 250)
+        throw std::out_of_range("Exception: Inodeindex out of range");
+    this->parentInodeIndex = parentInodeIndex;
 }
