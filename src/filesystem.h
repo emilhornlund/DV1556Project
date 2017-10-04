@@ -12,7 +12,6 @@ private:
     static const short int MAX_INT = 250;
     MemBlockDevice mMemblockDevice;
 
-
     INode *inodes[MAX_INT];
 
     short int bitmapInodeIndex;
@@ -31,6 +30,7 @@ private:
     int findNextFreeInode();
     int findNextFreeData();
     int findInodeByName(std::string filename);
+
     int getAllDirectoriesFromDataBlock (INode* inode, int* &inodes, std::string* &directories);
 
     std::string openData(int blockIndex);
@@ -40,8 +40,6 @@ public:
     FileSystem();
     ~FileSystem();
 
-    void format();
-
     /* These API functions need to be implemented
 	   You are free to specify parameter lists and return values
     */
@@ -49,7 +47,8 @@ public:
     // createFile(...)
 
     /* Creates a folder in the filesystem */
-    // createFolderi(...);
+    // createFolder(...);
+    int createInode(unsigned short int parentInodeIndex, std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden = false);
 
     /* Removes a file in the filesystem */
     // removeFile(...);
@@ -61,18 +60,15 @@ public:
     // goToFolder(...);
 
     /* This function will get all the files and folders in the specified folder */
-    // listDir(...);
+    int listDir (int* &inodes, std::string* &directories);
 
     /* Add your own member-functions if needed */
     std::string getPWD() const;
-    int createInode(unsigned short int parentInodeIndex, std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden = false);
+    void format();
 
     int appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize);
     int writeData(int dataBlock, char* data);
 
-    int listDir (int* &inodes, std::string* &directories);
-
-    //int openData()
     //int readData()
     //bool freeInode()
     //bool freeData()
