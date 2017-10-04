@@ -12,7 +12,7 @@ FileSystem::~FileSystem() {
 }
 
 void FileSystem::init () {
-    for (int i = 0; i < INT_MAX; i++) {
+    for (int i = 0; i < MAX_INT; i++) {
         this->inodes[i] = NULL;
     }
 
@@ -29,11 +29,11 @@ void FileSystem::format () {
 
 int FileSystem::findNextFreeData() {
     short int retVal = -1;
-    int stopIndex = (this->bitmapDataIndex - 1) % INT_MAX;
+    int stopIndex = (this->bitmapDataIndex - 1) % MAX_INT;
     bool found = false;
 
     for (; this->bitmapDataIndex != stopIndex && !found; this->bitmapDataIndex++) {
-        if (this->bitmapDataIndex >= INT_MAX) this->bitmapDataIndex = 0;
+        if (this->bitmapDataIndex >= MAX_INT) this->bitmapDataIndex = 0;
 
         if (!this->bitmapData[this->bitmapDataIndex]) {
             retVal = this->bitmapDataIndex;
@@ -46,11 +46,11 @@ int FileSystem::findNextFreeData() {
 
 int FileSystem::findNextFreeInode() {
     short int retVal = -1;
-    int stopIndex = (this->bitmapInodeIndex - 1) % INT_MAX;
+    int stopIndex = (this->bitmapInodeIndex - 1) % MAX_INT;
     bool found = false;
 
     for (; this->bitmapInodeIndex != stopIndex && !found; this->bitmapInodeIndex++) {
-        if (this->bitmapInodeIndex >= INT_MAX) this->bitmapInodeIndex = 0;
+        if (this->bitmapInodeIndex >= MAX_INT) this->bitmapInodeIndex = 0;
 
         if (!this->bitmapINodes[this->bitmapInodeIndex]) {
             retVal = this->bitmapInodeIndex;
@@ -62,7 +62,7 @@ int FileSystem::findNextFreeInode() {
 }
 
 void FileSystem::resetINodes() {
-	for (int i = 0; i < INT_MAX; i++) {
+	for (int i = 0; i < MAX_INT; i++) {
 		if (this->inodes[i] != NULL) {
 			delete this->inodes[i];
 			this->inodes[i] = NULL;
@@ -72,13 +72,13 @@ void FileSystem::resetINodes() {
 }
 
 void FileSystem::resetBitmapINodes() {
-	for (int i = 0; i < INT_MAX; i++) {
+	for (int i = 0; i < MAX_INT; i++) {
 		this->bitmapINodes[i] = false;
 	}
 }
 
 void FileSystem::resetBitmapData() {
-	for (int i = 0; i < INT_MAX; i++) {
+	for (int i = 0; i < MAX_INT; i++) {
 		this->bitmapData[i] = false;
 	}
 }

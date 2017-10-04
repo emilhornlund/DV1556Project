@@ -8,17 +8,16 @@ class INode;
 class FileSystem
 {
 private:
-
-    static const short int INT_MAX = 250;
+    static const short int MAX_INT = 250;
     MemBlockDevice mMemblockDevice;
 
 
-    INode *inodes[INT_MAX];
+    INode *inodes[MAX_INT];
 
     short int bitmapInodeIndex;
     short int bitmapDataIndex;
-    bool bitmapINodes[INT_MAX];
-    bool bitmapData[INT_MAX];
+    bool bitmapINodes[MAX_INT];
+    bool bitmapData[MAX_INT];
 
     INode *currentINode;
 
