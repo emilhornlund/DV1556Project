@@ -17,6 +17,7 @@ bool quit();
 std::string help();
 
 /* More functions ... */
+void ls(FileSystem &fileSystem);
 
 int main(void) {
     FileSystem fileSystem;
@@ -41,9 +42,10 @@ int main(void) {
 				bRun = quit();                
                 break;
             case 1: // format
+                fileSystem.format();
                 break;
             case 2: // ls
-                std::cout << "Listing directory" << std::endl;
+                    ls(fileSystem);
                 break;
             case 3: // create
                 break;
@@ -130,3 +132,17 @@ std::string help() {
 }
 
 /* Insert code for your shell functions and call them from the switch-case */
+void ls(FileSystem &fileSystem) {
+    char** directories = NULL;
+    int nrOfDirs = fileSystem.listDir(directories);
+    std::cout << "Directories: " << nrOfDirs << std::endl;
+    for (int i = 0; i < nrOfDirs; i++) {
+        std::string dir = directories[i];
+        std::cout << dir << std::endl;
+    }
+
+    for (int i = 0; i < nrOfDirs; i++) {
+        delete directories[i];
+    }
+    delete[] directories;
+}
