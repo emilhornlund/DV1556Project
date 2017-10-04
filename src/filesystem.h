@@ -9,16 +9,16 @@ class FileSystem
 {
 private:
 
-    static const short int INT_MAX = 250;
+    static const short int MAX_INT = 250;
     MemBlockDevice mMemblockDevice;
 
 
-    INode *inodes[INT_MAX];
+    INode *inodes[MAX_INT];
 
     short int bitmapInodeIndex;
     short int bitmapDataIndex;
-    bool bitmapINodes[INT_MAX];
-    bool bitmapData[INT_MAX];
+    bool bitmapINodes[MAX_INT];
+    bool bitmapData[MAX_INT];
 
     INode *currentINode;
 
@@ -30,7 +30,10 @@ private:
 
     int findNextFreeInode();
     int findNextFreeData();
+    int findInodeByName(std::string filename);
+    int getAllDirectoriesFromDataBlock (INode* inode, int* &inodes, std::string* &directories);
 
+    std::string openData(int blockIndex);
     int _appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize);
 
 public:
@@ -62,12 +65,12 @@ public:
 
     /* Add your own member-functions if needed */
     std::string getPWD() const;
-    int createInode(std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden = false);
+    int createInode(unsigned short int parentInodeIndex, std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden = false);
 
     int appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize);
     int writeData(int dataBlock, char* data);
 
-    int listDir (char** &directories);
+    int listDir (int* &inodes, std::string* &directories);
 
     //int openData()
     //int readData()
