@@ -9,16 +9,16 @@ class FileSystem
 {
 private:
 
-    static const short int MAX_INT = 250;
+    static const short int INT_MAX = 250;
     MemBlockDevice mMemblockDevice;
 
 
-    INode *inodes[MAX_INT];
+    INode *inodes[INT_MAX];
 
     short int bitmapInodeIndex;
     short int bitmapDataIndex;
-    bool bitmapINodes[MAX_INT];
-    bool bitmapData[MAX_INT];
+    bool bitmapINodes[INT_MAX];
+    bool bitmapData[INT_MAX];
 
     INode *currentINode;
 
@@ -30,8 +30,6 @@ private:
 
     int findNextFreeInode();
     int findNextFreeData();
-    int findInodeByName(std::string filename);
-    int getAllDirectoriesFromDataBlock (INode* inode, int* &inodes, std::string* &directories);
 
     int _appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize);
 
@@ -40,12 +38,15 @@ public:
     ~FileSystem();
 
     void format();
+
+    /* These API functions need to be implemented
+	   You are free to specify parameter lists and return values
+    */
     /* This function creates a file in the filesystem */
     // createFile(...)
 
     /* Creates a folder in the filesystem */
-    // createFolder(...);
-    int createInode(unsigned short int parentInodeIndex, std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden = false);
+    // createFolderi(...);
 
     /* Removes a file in the filesystem */
     // removeFile(...);
@@ -56,13 +57,19 @@ public:
     /* Function will move the current location to a specified location in the filesystem */
     // goToFolder(...);
 
+    /* This function will get all the files and folders in the specified folder */
+    // listDir(...);
+
     /* Add your own member-functions if needed */
     std::string getPWD() const;
-    int appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize);
-    int writeData (int dataBlock, char* data);
-    std::string openData(int blockIndex);
-    int listDir (int* &inodes, std::string* &directories);
+    int createInode(std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden = false);
 
+    int appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize);
+    int writeData(int dataBlock, char* data);
+
+    int listDir (char** &directories);
+
+    //int openData()
     //int readData()
     //bool freeInode()
     //bool freeData()
