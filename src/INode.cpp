@@ -18,6 +18,24 @@ INode::INode(unsigned short int parentInodeIndex, unsigned short int thisInodeIn
 	}
 }
 
+INode::INode(const INode &other) {
+	this->parentInodeIndex  = other.parentInodeIndex;
+	this->thisInodeIndex    = other.thisInodeIndex;
+	this->filename          = other.filename;
+	this->protection        = other.protection;
+	this->creator           = other.creator;
+	this->owner             = other.owner;
+	this->pwd               = other.pwd;
+	this->filesize          = other.filesize;
+	this->_isDir            = other._isDir;
+	this->_isHidden         = other._isHidden;
+
+
+	for (int i = 0; i < 10; i++) {
+		this->data[i] = NULL;
+	}
+}
+
 INode::~INode() {
 	for (int i = 0; i < 10; i++) {
 		if (this->data[i] != NULL) {
@@ -109,6 +127,10 @@ bool INode::setDataBlock (int blockIndex) {
     return found;
 }
 
+void INode::setSpecificDataBlock (int dataIndex, int blockIndex) {
+	this->data[dataIndex] = new unsigned short (blockIndex);
+}
+
 unsigned short int INode::getParentInodeIndex () const {
     return this->parentInodeIndex;
 }
@@ -121,4 +143,64 @@ void INode::setParentInodeIndex (unsigned short int parentInodeIndex) {
 
 unsigned short int INode::getThisInodeIndex() const {
     return this->thisInodeIndex;
+}
+
+/*
+ * 1 X
+ * 2 W
+ * 3 WX
+ * 4 R
+ * 5 RX
+ * 6 RW
+ * 7 RWX
+ * */
+std::string INode::toString() {
+	std::string retStr = "";
+	int permission = this->protection;
+
+	if ((permission - 4) >= 0) {
+		retStr += "R";
+		permission -= 4;
+	} else {
+		retStr += "-";
+	}
+
+	if ((permission - 2) >= 0) {
+		retStr += "W";
+		permission -= 2;
+	} else {
+		retStr += "-";
+	}
+
+	if ((permission - 1) >= 0) {
+		retStr += "X ";
+	} else {
+		retStr += "- ";
+	}
+
+	retStr += std::to_string(this->filesize) + "\t";
+	retStr += this->owner + "\t";
+	retStr += this->creator + "\t";
+
+	return retStr;
+}
+
+INode& INode::operator =(const INode &other) {
+	this->parentInodeIndex  = other.parentInodeIndex;
+	this->thisInodeIndex    = other.thisInodeIndex;
+	this->filename          = other.filename;
+	this->protection        = other.protection;
+	this->creator           = other.creator;
+	this->owner             = other.owner;
+	this->pwd               = other.pwd;
+	this->filesize          = other.filesize;
+	this->_isDir            = other._isDir;
+	this->_isHidden         = other._isHidden;
+
+
+	for (int i = 0; i < 10; i++) {
+		this->data[i] = NULL;
+	}
+
+	return *this;
 }

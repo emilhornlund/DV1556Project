@@ -24,8 +24,11 @@ private:
 	unsigned short int blockIndex;
 
 public:
+
 	INode(unsigned short int parentInodeIndex, unsigned short int thisInodeIndex, std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden = false);
 	virtual ~INode();
+
+	INode (const INode &other);
 
 	std::string getFilename() const;
 	void setFilename(const std::string filename);
@@ -53,11 +56,16 @@ public:
 	short int getNextDataBlockIndex();
 
     bool setDataBlock (int blockIndex);
+	void setSpecificDataBlock (int dataindex, int blockIndex);
 
     unsigned short int getParentInodeIndex () const;
     void setParentInodeIndex (unsigned short int parentInodeIndex);
 
     unsigned short int getThisInodeIndex() const;
+
+	std::string toString();
+
+	INode& operator =(const INode &other);
 };
 
 #endif

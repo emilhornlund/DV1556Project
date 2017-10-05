@@ -41,6 +41,8 @@ private:
 
     int removeFolderEntry (INode* inode, std::string filename);
 
+    bool splitFilepath (std::string &filename, std::string &path);
+
 public:
     FileSystem();
     ~FileSystem();
@@ -65,11 +67,12 @@ public:
     // removeFolder(...);
 
     /* Function will move the current location to a specified location in the filesystem */
-
+    int moveToFolder();
     int moveToFolder(const std::string filepath);
 
     /* This function will get all the files and folders in the specified folder */
-    int listDir (int* &inodes, std::string* &directories);
+    std::string listDir ();
+    std::string listDir (std::string &filepath);
 
     /* Add your own member-functions if needed */
     std::string getPWD() const;
@@ -82,8 +85,9 @@ public:
     //bool freeInode()
     //bool freeData()
 
-    std::string cat(const std::string filepath);
-
+    std::string cat(std::string &filepath);
+    int move (std::string from, std::string to);
+    int copy (std::string from, std::string to);
 
 };
 

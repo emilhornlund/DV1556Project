@@ -17,26 +17,29 @@ bool quit();
 std::string help();
 
 /* More functions ... */
-void ls(FileSystem &fileSystem);
+void ls(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 void mkdir(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, std::string username);
 void cd(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 void cat(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 void create(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, const std::string &username);
 void rm(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
+void mv(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
+void cp(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 
 int main(void) {
     FileSystem fileSystem;
 
 	std::string userCommand, commandArr[MAXCOMMANDS];
-	std::string user = "MatsOla";    // Change this if you want another user to be displayed
+	std::string user = "user";    // Change this if you want another user to be displayed
 	std::string currentDir;    // current directory, used for output
 
     bool bRun = true;
 
     /* TEST */
     fileSystem.createFile("a", user, true);
-    fileSystem.createFile("a/b", user, true);
-    fileSystem.createFile("a/b/c.txt", user, false);
+    fileSystem.createFile("b", user, true);
+    fileSystem.createFile("a/c.txt", user, false);
+    fileSystem.copy("a/c.txt", "b/c.txt");
 
     do {
         currentDir = fileSystem.getPWD();
@@ -56,7 +59,7 @@ int main(void) {
                 fileSystem.format();
                 break;
             case 2: // ls
-                    ls(fileSystem);
+                    ls(fileSystem, commandArr, nrOfCommands);
                 break;
             case 3: // create
                 create(fileSystem, commandArr, nrOfCommands, user);
@@ -72,10 +75,12 @@ int main(void) {
                 rm(fileSystem, commandArr, nrOfCommands);
                 break;
             case 8: // cp
+                cp(fileSystem, commandArr, nrOfCommands);
                 break;
             case 9: // append
                 break;
             case 10: // mv
+                mv(fileSystem, commandArr, nrOfCommands);
                 break;
             case 11: // mkdir
                 mkdir(fileSystem, commandArr, nrOfCommands, user);
@@ -148,17 +153,18 @@ std::string help() {
 }
 
 /* Insert code for your shell functions and call them from the switch-case */
-void ls(FileSystem &fileSystem) {
-    std::string* directories = NULL;
-    int* inodes = NULL;
+void ls(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
+    if (nrOfCommands > 1) {
+        try {
+            std::string filepath = strArr[1];
+            std::cout << fileSystem.listDir(filepath) << std::endl;
+        } catch (const char* e) {
+            std::cout << e << std::endl;
+        }
 
-    int nrOfDirs = fileSystem.listDir(inodes, directories);
-
-    for (int i = 0; i < nrOfDirs; i++)
-        std::cout << directories[i] << std::endl;
-
-    delete[] inodes;
-    delete[] directories;
+    } else {
+        std::cout << fileSystem.listDir() << std::endl;
+    }
 }
 
 void mkdir(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, std::string username) {
@@ -172,14 +178,20 @@ void cd(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
     if (nrOfCommands > 1) {
         std::string filepath = strArr[1];
         int retVal = fileSystem.moveToFolder(filepath);
+    } else {
+        int retVal = fileSystem.moveToFolder();
     }
 }
 
 void cat(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
     if (nrOfCommands > 1) {
         std::string filepath = strArr[1];
-        std::string content = fileSystem.cat(filepath);
-        std::cout << content << std::endl;
+        try {
+            std::string content = fileSystem.cat(filepath);
+            std::cout << content << std::endl;
+        } catch (const char* e) {
+            std::cout << e << std::endl;
+        }
     }
 }
 
@@ -200,6 +212,30 @@ void rm(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         std::string filepath = strArr[1];
         try {
             fileSystem.removeFile(filepath);
+        } catch (const char *e) {
+            std::cout << e << std::endl;
+        }
+    }
+}
+
+void mv(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
+    if (nrOfCommands > 2) {
+        std::string fromFilepath = strArr[1];
+        std::string toFilepath = strArr[2];
+        try {
+            fileSystem.move(fromFilepath, toFilepath);
+        } catch (const char *e) {
+            std::cout << e << std::endl;
+        }
+    }
+}
+
+void cp(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
+    if (nrOfCommands > 2) {
+        std::string fromFilepath = strArr[1];
+        std::string toFilepath = strArr[2];
+        try {
+            fileSystem.copy(fromFilepath, toFilepath);
         } catch (const char *e) {
             std::cout << e << std::endl;
         }
