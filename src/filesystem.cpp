@@ -80,6 +80,20 @@ int FileSystem::findInodeByName(int* inodeIndexes, std::string* filenames, int s
     else return -1;
 }
 
+int FileSystem::findInodeIndexByName(std::string* filenames, int size, std::string searchFilename) {
+    bool found = false;
+    int i = 0;
+
+    for (; i < size && !found; i++) {
+        if(filenames[i] == searchFilename) {
+            found = true;
+        }
+    }
+
+    if (found) return i-1;
+    else return -1;
+}
+
 void FileSystem::resetINodes() {
 	for (int i = 0; i < MAX_INT; i++) {
 		if (this->inodes[i] != NULL) {
@@ -111,39 +125,6 @@ void FileSystem::reset() {
 std::string FileSystem::getPWD() const {
 	return this->currentINode->getPWD();
 }
-
-/*int FileSystem::createFolder(std::string filepath, std::string username) {
-    int retVal = -1;
-
-    bool found = false;
-    int i = (int)(filepath.length() - 1);
-    for (; i > 0 && !found; i--) {
-        if (filepath[i] == '/') {
-            found = true;
-        }
-    }
-
-    std::string filename = filepath.substr((i+2), filepath.length());
-    filepath.erase(i+1, filepath.length() - 1);
-
-    if (!filename.empty()) {
-        INode *directory = NULL;
-        if (found) {
-            int inodeIndex = goToFolder(filepath);
-            if (inodeIndex < 0) {
-                throw std::out_of_range("No such filepath");
-            }
-            directory = this->inodes[inodeIndex];
-
-            if (!directory->isDir()) throw "create: cannot create: Not a directory";
-
-        } else {
-            directory = this->currentINode;
-        }
-        retVal = this->createInode(directory->getThisInodeIndex(), filename, 7, username, username, directory->getPWD() + filename + "/", true, false);
-    }
-    return retVal;
-}*/
 
 int FileSystem::createFile(std::string filepath, std::string username, const bool isDir) {
     int retVal = -1;
@@ -435,3 +416,100 @@ std::string FileSystem::cat(const std::string filepath) {
     return actualData;
 }
 
+int FileSystem::removeFolderEntry (INode* inode, std::string filename) {
+    int deleted = -1;
+
+    int *inodeIndexes;
+    std::string *directories;
+    int nrOfDirectories = this->getAllDirectoriesFromDataBlock(inode, inodeIndexes, directories);
+    int inodeIndex = findInodeByName(inodeIndexes, directories, nrOfDirectories, filename);
+    int entryIndex = findInodeIndexByName(directories, nrOfDirectories, filename);
+
+    //std::cout << "NrOfDirectories: " << nrOfDirectories << std::endl;
+    //std::cout << "entryIndex: " << entryIndex << std::endl;
+
+    bool okToDelete = true;
+    if(this->inodes[inodeIndex]->isDir()) {
+        int* tmpInodeIndexes;
+        std::string* tmpDirs;
+        int nrOfFilesInDir = this->getAllDirectoriesFromDataBlock(this->inodes[inodeIndex], tmpInodeIndexes, tmpDirs);
+        delete[] tmpInodeIndexes;
+        delete[] tmpDirs;
+
+        if(nrOfFilesInDir > 2)
+            okToDelete = false;
+    }
+
+    if (entryIndex != -1 && okToDelete) {
+        char dataBlock[512];
+        inode->setFilesize(0);
+        for (int i = 0; i < nrOfDirectories; i++) {
+            if (i != entryIndex) {
+                char tmpDir[16] = {'\0'};
+                tmpDir[0] = (char) inodeIndexes[i];
+                for (int n = 0; n < 15 && directories[i][n] != '\0'; n++) {
+                    tmpDir[n + 1] = directories[i][n];
+                }
+
+                this->appendData(dataBlock, inode->getFilesize(), tmpDir, 16);
+                inode->setFilesize(inode->getFilesize() + 16);
+            }
+        }
+
+        this->writeData(inode->getFirstDataBlockIndex(), dataBlock);
+
+        deleted = inodeIndex;
+    }
+
+    delete[] inodeIndexes;
+    delete[] directories;
+
+    return deleted;
+}
+
+bool FileSystem::removeFile(std::string filepath) {
+    bool retVal = false;
+
+    bool found = false;
+    int i = (int)(filepath.length() - 1);
+    for (; i > 0 && !found; i--) {
+        if (filepath[i] == '/') {
+            found = true;
+        }
+    }
+
+    std::string filename;
+    int n = i;
+    if(found) {
+        n = i+2;
+    }
+    filename = filepath.substr((n), filepath.length());
+
+    if (!filename.empty()) {
+        INode *directory = NULL;
+        if (found) {
+            filepath.erase(i+1, filepath.length());
+            //std::cout << "FilePath: " << filepath << std::endl;
+            int inodeIndex = goToFolder(filepath);
+            if (inodeIndex < 0) {
+                throw std::out_of_range("No such filepath");
+            }
+            directory = this->inodes[inodeIndex];
+
+        } else {
+            directory = this->currentINode;
+        }
+
+        /* IF IF DIR - must be empty */
+        int deletedInode = this->removeFolderEntry(directory, filename);
+
+        if(deletedInode != -1) {
+            this->bitmapINodes[deletedInode] = false;
+            retVal = true;
+        } else {
+            throw "Error: delete rejected. Folder must be empty or file does not exist.";
+        }
+    }
+
+    return retVal;
+}

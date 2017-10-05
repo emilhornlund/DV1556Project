@@ -22,6 +22,7 @@ void mkdir(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, std::s
 void cd(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 void cat(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 void create(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, const std::string &username);
+void rm(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 
 int main(void) {
     FileSystem fileSystem;
@@ -31,6 +32,11 @@ int main(void) {
 	std::string currentDir;    // current directory, used for output
 
     bool bRun = true;
+
+    /* TEST */
+    fileSystem.createFile("a", user, true);
+    fileSystem.createFile("a/b", user, true);
+    fileSystem.createFile("a/b/c.txt", user, false);
 
     do {
         currentDir = fileSystem.getPWD();
@@ -63,6 +69,7 @@ int main(void) {
             case 6: // restoreImage
                 break;
             case 7: // rm
+                rm(fileSystem, commandArr, nrOfCommands);
                 break;
             case 8: // cp
                 break;
@@ -182,7 +189,18 @@ void create(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, const
         try {
             fileSystem.createFile(filepath, username, false);
         }
-        catch (char *e) {
+        catch (const char *e) {
+            std::cout << e << std::endl;
+        }
+    }
+}
+
+void rm(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
+    if (nrOfCommands > 1) {
+        std::string filepath = strArr[1];
+        try {
+            fileSystem.removeFile(filepath);
+        } catch (const char *e) {
             std::cout << e << std::endl;
         }
     }

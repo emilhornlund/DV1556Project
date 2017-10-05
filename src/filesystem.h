@@ -30,6 +30,7 @@ private:
     int findNextFreeInode();
     int findNextFreeData();
     int findInodeByName(int* inodeIndexes, std::string* filenames, int size, std::string searchFilename);
+    int findInodeIndexByName(std::string* filenames, int size, std::string searchFilename);
 
     int getAllDirectoriesFromDataBlock (INode* inode, int* &inodes, std::string* &directories);
 
@@ -37,6 +38,9 @@ private:
     int _appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize);
 
     int goToFolder(std::string filePath);
+
+    int removeFolderEntry (INode* inode, std::string filename);
+
 public:
     FileSystem();
     ~FileSystem();
@@ -55,7 +59,7 @@ public:
                         std::string creator, std::string owner, std::string pwd, bool isDir, bool isHidden);
 
     /* Removes a file in the filesystem */
-    // removeFile(...);
+    bool removeFile(std::string filepath);
 
     /* Removes a folder in the filesystem */
     // removeFolder(...);
@@ -79,6 +83,8 @@ public:
     //bool freeData()
 
     std::string cat(const std::string filepath);
+
+
 };
 
 #endif // FILESYSTEM_H
