@@ -1,8 +1,9 @@
 #include "INode.h"
 #include <iostream>
 
-INode::INode(unsigned short int parentInodeIndex, std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden) {
+INode::INode(unsigned short int parentInodeIndex, unsigned short int thisInodeIndex, std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden) {
 	this->parentInodeIndex  = parentInodeIndex;
+    this->thisInodeIndex    = thisInodeIndex;
     this->filename          = filename;
 	this->protection        = protection;
 	this->creator           = creator;
@@ -116,4 +117,8 @@ void INode::setParentInodeIndex (unsigned short int parentInodeIndex) {
     if (parentInodeIndex < 0 || parentInodeIndex > 250)
         throw std::out_of_range("Exception: Inodeindex out of range");
     this->parentInodeIndex = parentInodeIndex;
+}
+
+unsigned short int INode::getThisInodeIndex() const {
+    return this->thisInodeIndex;
 }

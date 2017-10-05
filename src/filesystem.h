@@ -29,13 +29,14 @@ private:
 
     int findNextFreeInode();
     int findNextFreeData();
-    int findInodeByName(std::string filename);
+    int findInodeByName(int* inodeIndexes, std::string* filenames, int size, std::string searchFilename);
 
     int getAllDirectoriesFromDataBlock (INode* inode, int* &inodes, std::string* &directories);
 
     std::string openData(int blockIndex);
     int _appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize);
 
+    int goToFolder(std::string filePath);
 public:
     FileSystem();
     ~FileSystem();
@@ -43,12 +44,15 @@ public:
     /* These API functions need to be implemented
 	   You are free to specify parameter lists and return values
     */
+
     /* This function creates a file in the filesystem */
-    // createFile(...)
+    int createFile(std::string filepath, std::string username, const bool isDir);
 
     /* Creates a folder in the filesystem */
-    // createFolder(...);
-    int createInode(unsigned short int parentInodeIndex, std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden = false);
+    //int createFolder(std::string filepath, std::string username);
+
+    int createInode(unsigned short int parentInodeIndex, std::string filename, unsigned short int protection,
+                        std::string creator, std::string owner, std::string pwd, bool isDir, bool isHidden);
 
     /* Removes a file in the filesystem */
     // removeFile(...);
@@ -57,7 +61,8 @@ public:
     // removeFolder(...);
 
     /* Function will move the current location to a specified location in the filesystem */
-    // goToFolder(...);
+
+    int moveToFolder(const std::string filepath);
 
     /* This function will get all the files and folders in the specified folder */
     int listDir (int* &inodes, std::string* &directories);
@@ -67,11 +72,13 @@ public:
     void format();
 
     int appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize);
-    int writeData(int dataBlock, char* data);
+    int writeData(int dataBlock, char *data);
 
     //int readData()
     //bool freeInode()
     //bool freeData()
+
+    std::string cat(const std::string filepath);
 };
 
 #endif // FILESYSTEM_H

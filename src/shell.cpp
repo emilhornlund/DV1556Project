@@ -18,17 +18,22 @@ std::string help();
 
 /* More functions ... */
 void ls(FileSystem &fileSystem);
+void mkdir(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, std::string username);
+void cd(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
+void cat(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
+void create(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, const std::string &username);
 
 int main(void) {
     FileSystem fileSystem;
 
 	std::string userCommand, commandArr[MAXCOMMANDS];
 	std::string user = "MatsOla";    // Change this if you want another user to be displayed
-	std::string currentDir = fileSystem.getPWD();    // current directory, used for output
+	std::string currentDir;    // current directory, used for output
 
     bool bRun = true;
 
     do {
+        currentDir = fileSystem.getPWD();
         std::cout << user << "@DV1492:" << currentDir << "$ ";
         getline(std::cin, userCommand);
 
@@ -48,8 +53,10 @@ int main(void) {
                     ls(fileSystem);
                 break;
             case 3: // create
+                create(fileSystem, commandArr, nrOfCommands, user);
                 break;
             case 4: // cat
+                cat(fileSystem, commandArr, nrOfCommands);
                 break;
             case 5: // createImage
                 break;
@@ -64,8 +71,10 @@ int main(void) {
             case 10: // mv
                 break;
             case 11: // mkdir
-                break;
+                mkdir(fileSystem, commandArr, nrOfCommands, user);
+            break;
             case 12: // cd
+                cd(fileSystem, commandArr, nrOfCommands);
                 break;
             case 13: // pwd
                 std::cout << fileSystem.getPWD() << std::endl;
@@ -139,8 +148,42 @@ void ls(FileSystem &fileSystem) {
     int nrOfDirs = fileSystem.listDir(inodes, directories);
 
     for (int i = 0; i < nrOfDirs; i++)
-        std::cout << inodes[i] << " | " << directories[i] << std::endl;
+        std::cout << directories[i] << std::endl;
 
     delete[] inodes;
     delete[] directories;
+}
+
+void mkdir(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, std::string username) {
+    if (nrOfCommands > 1) {
+        std::string filepath = strArr[1];
+        fileSystem.createFile(filepath, username, true);
+    }
+}
+
+void cd(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
+    if (nrOfCommands > 1) {
+        std::string filepath = strArr[1];
+        int retVal = fileSystem.moveToFolder(filepath);
+    }
+}
+
+void cat(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
+    if (nrOfCommands > 1) {
+        std::string filepath = strArr[1];
+        std::string content = fileSystem.cat(filepath);
+        std::cout << content << std::endl;
+    }
+}
+
+void create(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, const std::string &username) {
+    if (nrOfCommands > 1) {
+        std::string filepath = strArr[1];
+        try {
+            fileSystem.createFile(filepath, username, false);
+        }
+        catch (char *e) {
+            std::cout << e << std::endl;
+        }
+    }
 }
