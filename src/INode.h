@@ -4,10 +4,10 @@
 #include <string>
 
 class INode {
-private:
+public:
 	static const unsigned short int MAX_FILESIZE = 5120;
 	static const unsigned short int MAX_BLOCKSIZE = 512;
-
+private:
 	unsigned short int protection;
 	std::string filename;
 	std::string creator;
@@ -22,7 +22,6 @@ private:
 	unsigned short int *data[10];
 
 	unsigned short int blockIndex;
-
 public:
 
 	INode(unsigned short int parentInodeIndex, unsigned short int thisInodeIndex, std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, unsigned short int filesize, bool isDir, bool isHidden = false);

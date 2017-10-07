@@ -25,6 +25,7 @@ void create(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, const
 void rm(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 void mv(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 void cp(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
+void append(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 
 int main(void) {
     FileSystem fileSystem;
@@ -36,10 +37,31 @@ int main(void) {
     bool bRun = true;
 
     /* TEST */
-    fileSystem.createFile("a", user, true);
-    fileSystem.createFile("b", user, true);
-    fileSystem.createFile("a/c.txt", user, false);
-    fileSystem.copy("a/c.txt", "b/c.txt");
+    std::string garbage;
+    fileSystem.createFile("a", user, garbage, true);
+    fileSystem.createFile("b", user, garbage, true);
+    std::string fileContent = "FnKMB2eueh1c3jEytgraSHCsCqlSYKVRa8srQdIZqrB6LJNcVB9Az60zd6b9yMCKTeHK2AoHZtjaObE95L99Mpr8sSNsCMIuDu6YGIsQBVPqZoe9E0PK9NSdZuZo1pYdBHorxhEPanNdWWCJQqTROswtwYa6ybS52k346xXgoPSIDWuh37mIyg5ezoTx5LEuDT6sS4uBe3DRS0pIwQ6mYlYPxg4huyvsIWIGAtEeDu1lNrVB0ZQws6UK7LeOfl3rgvpUPgsHaR7ukrLT5i75E20130oovSJemwfT1x1DLvUhscj5HvUmeiW6VR6yjyIWOLtELmptivB3hySY9jrba4UbK5Na3dgewShCqii7r1x5Mjzj4LVawDB6J4M1Qahmvj4agI9ZgNElrOtk0QZhxFnJDfeUqMKzV94phBME4ct2X2XdGwQvUexVfIdmfwHMVcnWgXnejoBRuaFxvVIva1UvZRuZ5qW6WPqtM30XjOdle3wic5JbsNzGqjE7L2g9XSF3Lc7Mp7iKry43J27uCEvKZC4VHQbjmZoOYf0pLTJW7NilnuEhNlyYU6YWB5hgM2ewEXflWCZJc09tt4m5AEB0U3y3NOMw3un64r95THYGhxpuYXLpfdgVhHIoMIiWHefH6Bq1mFE0Ufim6OG525JI96ZHZarj48FpC8jOOTEdjGvSCIb9a3Fc7JfRMpmaEwd5DfQnEpHSCjQBZOepEGsIKDmobpFPAy0NZZmnxnKzskgRQCGuCtMJaTnzwrvNiPafqTS2a418SIKkfwyTVtRGyiFmeIElVrkiQroXbsznGlq0VCZLWn8hTXeAVDB30jdsBe57tmQ4QIJ9LjSkcCqBX1JvlLIuSFXuV9m2UIx31jnXqUJlWcoZ5LWI1qAzxjXZkG09TNWu8N2CoRWjNxUOI2RxIRwa6gEutP8wZYBCUybMvPzFkai1i2r68mu0zQoHSm3YeGfvtVjJtpRpduwlaZhkkNwEn4hATDYOltbqYt9zNCiyY2ULQD91iUkrLIyqzIFALnEkkyhiarlK0KqCnua9HmUeO7GoUrzTlL4foBm7RvZo943LYxxYp9KPooaqlyhWmUG1KHsQG0WVPlINXkatvcoGvpCH3cOApPm2WS9huzYAlVhoxpXC2zN7vGELKfWgM86q0Zkp3fdn1lLIMbB4hG18WawXGAwq0txOfBJIJcLvODfYk6xPbCdRxWF7a7lK7Vjf5xKlydsPckA526iEQYPa7hZHjLE8g9eAtZbyJn6DWH7nUFSMGNYzNbsP09StTCv1NxiQi80B";
+    fileSystem.createFile("b.txt", user, fileContent, false);
+    //fileSystem.copy("a/c.txt", "b/c.txt");
+
+
+    std::string contentA = "hejmittnamnärA";
+    std::string contentB = "sugen?";
+    fileSystem.createFile("a.txt", user, contentA, false);
+    //fileSystem.createFile("b.txt", user, contentB, false);
+
+    fileSystem.appendFile("a.txt", "b.txt");
+
+
+    /*
+    std::string myPath = "b/c.txt";
+    try {
+        std::string content = fileSystem.cat(myPath);
+        std::cout << content << std::endl;
+    } catch (const char* e) {
+        std::cout << e << std::endl;
+    }
+    */
 
     do {
         currentDir = fileSystem.getPWD();
@@ -78,6 +100,7 @@ int main(void) {
                 cp(fileSystem, commandArr, nrOfCommands);
                 break;
             case 9: // append
+                append(fileSystem, commandArr, nrOfCommands);
                 break;
             case 10: // mv
                 mv(fileSystem, commandArr, nrOfCommands);
@@ -170,7 +193,8 @@ void ls(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
 void mkdir(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, std::string username) {
     if (nrOfCommands > 1) {
         std::string filepath = strArr[1];
-        fileSystem.createFile(filepath, username, true);
+        std::string garbage;
+        fileSystem.createFile(filepath, username, garbage, true);
     }
 }
 
@@ -198,8 +222,13 @@ void cat(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
 void create(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, const std::string &username) {
     if (nrOfCommands > 1) {
         std::string filepath = strArr[1];
+
+        std::string contents;
+        std::cout << "Content: ";
+        std::getline(std::cin, contents);
+
         try {
-            fileSystem.createFile(filepath, username, false);
+            fileSystem.createFile(filepath, username, contents, false);
         }
         catch (const char *e) {
             std::cout << e << std::endl;
@@ -236,6 +265,18 @@ void cp(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         std::string toFilepath = strArr[2];
         try {
             fileSystem.copy(fromFilepath, toFilepath);
+        } catch (const char *e) {
+            std::cout << e << std::endl;
+        }
+    }
+}
+
+void append(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
+    if (nrOfCommands > 2) {
+        std::string fromFilepath = strArr[1];
+        std::string toFilepath = strArr[2];
+        try {
+            fileSystem.appendFile(fromFilepath, toFilepath);
         } catch (const char *e) {
             std::cout << e << std::endl;
         }

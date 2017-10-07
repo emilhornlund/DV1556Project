@@ -43,6 +43,9 @@ private:
 
     bool splitFilepath (std::string &filename, std::string &path);
 
+    int fileExists(INode *inode, std::string filename);
+
+    INode* fileExists(INode *inode, std::string filename, bool* garbage);
 public:
     FileSystem();
     ~FileSystem();
@@ -52,7 +55,7 @@ public:
     */
 
     /* This function creates a file in the filesystem */
-    int createFile(std::string filepath, std::string username, const bool isDir);
+    int createFile(std::string filepath, std::string username, std::string &content, const bool isDir);
 
     /* Creates a folder in the filesystem */
     //int createFolder(std::string filepath, std::string username);
@@ -88,7 +91,7 @@ public:
     std::string cat(std::string &filepath);
     int move (std::string from, std::string to);
     int copy (std::string from, std::string to);
-
+    int appendFile(std::string to, std::string from);
 };
 
 #endif // FILESYSTEM_H
