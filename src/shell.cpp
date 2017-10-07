@@ -54,17 +54,6 @@ int main(void) {
     fileSystem.appendFile("a.txt", "b.txt");
     fileSystem.changePermission("4", "b");
 
-
-    /*
-    std::string myPath = "b/c.txt";
-    try {
-        std::string content = fileSystem.cat(myPath);
-        std::cout << content << std::endl;
-    } catch (const char* e) {
-        std::cout << e << std::endl;
-    }
-    */
-
     do {
         currentDir = fileSystem.getPWD();
         std::cout << user << "@DV1492:" << currentDir << "$ ";
@@ -212,13 +201,13 @@ void cd(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         std::string filepath = strArr[1];
 
         try {
-            int retVal = fileSystem.moveToFolder(filepath);
+            fileSystem.moveToFolder(filepath);
         } catch (const char* e) {
             std::cout << e << std::endl;
         }
     } else {
         try {
-            int retVal = fileSystem.moveToFolder();
+            fileSystem.moveToFolder();
         } catch (const char* e) {
             std::cout << e << std::endl;
         }

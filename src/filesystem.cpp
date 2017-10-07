@@ -127,9 +127,7 @@ int FileSystem::fileExists(INode *inode, std::string filename) {
     int inodeIndex = this->findInodeIndexByName(directories, nrOfDirs, filename);
 
     delete[] inodeIndexes;
-    inodeIndexes = NULL;
     delete[] directories;
-    directories = NULL;
 
     return inodeIndex;
 }
@@ -228,6 +226,8 @@ int FileSystem::createFile(std::string filepath, std::string username, std::stri
             this->inodes[retVal]->setFilesize(filesize);
             for (int i = 0; i < nrOfBlocks; i++)
                 this->inodes[retVal]->setSpecificDataBlock(i, freeData[i]);
+
+            delete[] freeData;
 
             if (filesize <= 512) {
                 std::string dataStr;
@@ -331,7 +331,9 @@ int FileSystem::createInode(unsigned short int parentInodeIndex, std::string fil
                 this->writeData(parent->getFirstDataBlockIndex(), tmpData);
                 parent->setFilesize(parent->getFilesize()+16);
                 delete[] tmpData;
+
             }
+
         } else {
             //abort
             inodeIndex = -1;
@@ -439,7 +441,6 @@ std::string FileSystem::listDir () {
     std::string* directories;
 
     int nrOfDirs = this->getAllDirectoriesFromDataBlock(this->currentINode, inodesIndexes, directories);
-
 
     for (int i = 0; i < nrOfDirs; i++) {
         retStr += this->inodes[inodesIndexes[i]]->toString() + " " + directories[i] + (this->inodes[inodesIndexes[i]]->isDir() ? "/" : "");
@@ -552,9 +553,7 @@ int FileSystem::goToFolder(std::string filePath) {
         inodeIndex = findInodeByName(inodeIndexes, directories, nrOfDirectories, names[i]);
 
         delete[] inodeIndexes;
-        inodeIndexes = NULL;
         delete[] directories;
-        directories = NULL;
 
         bool* permissions;
         this->checkPermissions(this->inodes[inodeIndex]->getProtection(), permissions);
@@ -672,8 +671,11 @@ int FileSystem::removeFolderEntry (INode* inode, std::string filename) {
         bool* permissions;
         this->checkPermissions(this->inodes[inodeIndex]->getProtection(), permissions);
 
-        if(!permissions[1])
+        if(!permissions[1]) {
+            delete[] inodeIndexes;
+            delete[] directories;
             throw "Error: permission denied.";
+        }
 
         delete[] permissions;
 
@@ -818,8 +820,11 @@ int FileSystem::move (std::string from, std::string to) {
     bool* permissions;
     this->checkPermissions(toInode->getProtection(), permissions);
 
-    if(!permissions[1])
+    if(!permissions[1]) {
+        delete[] inodeIndexes;
+        delete[] directories;
         throw "Error: permission denied.";
+    }
 
     delete[] permissions;
 
@@ -881,35 +886,44 @@ int FileSystem::copy (std::string from, std::string to){
         toInode = this->inodes[inodeIndexTo];
     }
 
-    int* inodesIndex;
+    int* inodeIndexes;
     std::string* directories;
-    int nrOfEntries = this->getAllDirectoriesFromDataBlock(fromInode, inodesIndex, directories);
+    int nrOfEntries = this->getAllDirectoriesFromDataBlock(fromInode, inodeIndexes, directories);
     int inodeIndex = this->findInodeIndexByName(directories, nrOfEntries, fromFilename);
 
     if(inodeIndex == -1) {
-        delete[] inodesIndex;
+        delete[] inodeIndexes;
         delete[] directories;
         throw "Error: no such file.";
     }
 
     bool* permissions;
-    this->checkPermissions(this->inodes[inodesIndex[inodeIndex]]->getProtection(), permissions);
+    this->checkPermissions(this->inodes[inodeIndexes[inodeIndex]]->getProtection(), permissions);
 
-    if(!permissions[0] || !permissions[1])
+    if(!permissions[0] || !permissions[1]) {
+        delete[] inodeIndexes;
+        delete[] directories;
         throw "Error: permission denied.";
+    }
 
     delete[] permissions;
 
     this->checkPermissions(toInode->getProtection(), permissions);
 
-    if(!permissions[0] || !permissions[1])
+    if(!permissions[0] || !permissions[1]) {
+        delete[] inodeIndexes;
+        delete[] directories;
         throw "Error: permission denied.";
+    }
 
     delete[] permissions;
 
     // Get copy of inode
-    fromInode = this->inodes[inodesIndex[inodeIndex]];
+    fromInode = this->inodes[inodeIndexes[inodeIndex]];
     int filesize = fromInode->getFilesize();
+
+    delete[] inodeIndexes;
+    delete[] directories;
 
     // Figure out how many datablocks needed
     int nrOfBlocksNeeded = filesize / 512;
@@ -988,6 +1002,8 @@ int FileSystem::copy (std::string from, std::string to){
     this->appendData(cToDataBlock, toInode->getFilesize(), cFilename, 16);
     this->writeData(toInode->getFirstDataBlockIndex(), cToDataBlock);
     toInode->setFilesize(toInode->getFilesize()+16);
+
+    delete[] freeData;
 }
 
 int FileSystem::appendFile(std::string to, std::string from) {
@@ -1046,15 +1062,14 @@ int FileSystem::appendFile(std::string to, std::string from) {
 
     toInode = this->inodes[inodeIndexes[inodeIndex]];
 
+    delete[] inodeIndexes;
+    delete[] directories;
     this->checkPermissions(toInode->getProtection(), permissions);
 
     if(!permissions[1])
         throw "Error: permission denied.";
 
     delete[] permissions;
-
-    delete[] inodeIndexes;
-    delete[] directories;
 
     if (fromInode->isDir() || toInode->isDir())
         throw "Error: can only append to files.";
@@ -1137,6 +1152,7 @@ int FileSystem::appendFile(std::string to, std::string from) {
     }
 
     toInode->setFilesize(toInode->getFilesize() + fromInode->getFilesize());
+
     delete[] freeDataBlocks;
 
     return 0;
@@ -1173,6 +1189,9 @@ int FileSystem::changePermission(std::string permission, std::string filepath) {
 
     location = this->inodes[inodeIndexes[inodeIndex]];
 
+    delete[] inodeIndexes;
+    delete[] directories;
+
     bool* permissions;
     this->checkPermissions(location->getProtection(), permissions);
 
@@ -1188,14 +1207,12 @@ int FileSystem::changePermission(std::string permission, std::string filepath) {
             else passOK = true;
         } while (counter < 3 && !passOK);
 
-        if(!passOK)
+        if(!passOK) {
+            delete[] permissions;
             throw "Error: permission denied.";
+        }
     }
 
     delete[] permissions;
-
     location->setProtection((const unsigned short) iPermission);
-
-    delete[] inodeIndexes;
-    delete[] directories;
 }
