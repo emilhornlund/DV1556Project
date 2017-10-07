@@ -1,11 +1,7 @@
 #include "filesystem.h"
 #include "INode.h"
-
 #include <iostream>
 #include "Split.h"
-#include <vector>
-
-//#define DEBUG_FILESYSTEM
 
 FileSystem::FileSystem() {
     this->currentINode = NULL;
@@ -105,15 +101,13 @@ void FileSystem::resetINodes() {
 }
 
 void FileSystem::resetBitmapINodes() {
-	for (int i = 0; i < MAX_INT; i++) {
+	for (int i = 0; i < MAX_INT; i++)
 		this->bitmapINodes[i] = false;
-	}
 }
 
 void FileSystem::resetBitmapData() {
-	for (int i = 0; i < MAX_INT; i++) {
+	for (int i = 0; i < MAX_INT; i++)
 		this->bitmapData[i] = false;
-	}
 }
 
 void FileSystem::reset() {
@@ -140,6 +134,32 @@ int FileSystem::fileExists(INode *inode, std::string filename) {
     return inodeIndex;
 }
 
+void FileSystem::checkPermissions(int permission, bool* &permissions) {
+    permissions = new bool[3];
+    for(int i = 0; i < 3; i++)
+        permissions[i] = NULL;
+
+    if ((permission - 4) >= 0) {
+        permissions[0] = true; //READ
+        permission -= 4;
+    } else {
+        permissions[0] = false;
+    }
+
+    if ((permission - 2) >= 0) {
+        permissions[1] = true; //WRITE
+        permission -= 2;
+    } else {
+        permissions[1] = false;
+    }
+
+    if ((permission - 1) >= 0) {
+        permissions[2] = true; //EXECUTE
+    } else {
+        permissions[2] = false;
+    }
+}
+
 int FileSystem::createFile(std::string filepath, std::string username, std::string &content, const bool isDir) {
     int retVal = -1;
 
@@ -149,7 +169,6 @@ int FileSystem::createFile(std::string filepath, std::string username, std::stri
     INode *location;
     if(found || filepath[0] == '/') {
         int inodeIndex = goToFolder(filepath);
-        //std::cout << inodeIndex << std::endl;
         location = this->inodes[inodeIndex];
     } else {
         location = this->currentINode;
@@ -157,10 +176,17 @@ int FileSystem::createFile(std::string filepath, std::string username, std::stri
 
     if (!location->isDir()) throw "create: cannot create: Not a directory";
 
-    int inodeIndex = this->fileExists(location, filename);
+    bool* permissions;
+    this->checkPermissions(location->getProtection(), permissions);
 
+    if(!permissions[1])
+        throw "Error: permission denied.";
+
+    delete[] permissions;
+
+    int inodeIndex = this->fileExists(location, filename);
     if (inodeIndex != -1) {
-        throw "Error: folder / file exists.";
+        throw "Error: folder/file exists.";
     }
 
     if (!filename.empty()) {
@@ -171,18 +197,14 @@ int FileSystem::createFile(std::string filepath, std::string username, std::stri
         retVal = this->createInode(location->getThisInodeIndex(), filename, 7, username, username, newPWD, isDir, false);
 
         if (!isDir) {
-            //SKAPA DATA
-            //content.append('\0');
             int filesize = content.length();
-            //std::cout << "FileSize: " << filesize << std::endl;
 
             int nrOfBlocks = filesize / 512;
             if (nrOfBlocks*512 < filesize || nrOfBlocks == 0)
                 nrOfBlocks++;
 
-            if (nrOfBlocks > 10) {
+            if (nrOfBlocks > 10)
                 throw "Error: data to large";
-            }
 
             int* freeData = new int[nrOfBlocks];
 
@@ -200,15 +222,12 @@ int FileSystem::createFile(std::string filepath, std::string username, std::stri
                 throw "Error: no free spaces on harddrive.";
             }
 
-            for(int i = 0; i < nrOfBlocks; i++) {
+            for(int i = 0; i < nrOfBlocks; i++)
                 this->bitmapData[freeData[i]] = true;
-            }
 
             this->inodes[retVal]->setFilesize(filesize);
-
-            for (int i = 0; i < nrOfBlocks; i++) {
+            for (int i = 0; i < nrOfBlocks; i++)
                 this->inodes[retVal]->setSpecificDataBlock(i, freeData[i]);
-            }
 
             if (filesize <= 512) {
                 std::string dataStr;
@@ -217,16 +236,13 @@ int FileSystem::createFile(std::string filepath, std::string username, std::stri
                 char dataBlock[512] = {'\0'};
                 char data[512] = {'\0'};
 
-                for (int i = 0; i < filesize; i++) {
+                for (int i = 0; i < filesize; i++)
                     data[i] = content[i];
-                }
 
-                //std::cout << "Filesize: " << filesize << std::endl;
                 this->appendData(dataBlock, 0, data, filesize);
                 this->writeData(this->inodes[retVal]->getFirstDataBlockIndex(), dataBlock);
             } else {
                 ///PART 1
-
                 int blockIndex = this->inodes[retVal]->getFirstDataBlockIndex();
 
                 std::string dataStr;
@@ -235,19 +251,14 @@ int FileSystem::createFile(std::string filepath, std::string username, std::stri
                 char dataBlock[512] = {'\0'};
                 char data[512];
 
-                for (int i = 0; i < 512; i++) {
+                for (int i = 0; i < 512; i++)
                     data[i] = content[i];
-                    //std::cout << data[i];
-                }
 
                 this->appendData(dataBlock, 0, data, 512);
                 this->writeData(blockIndex, dataBlock);
                 filesize -= 512;
 
                 /// PART 2
-
-                //std::cout << std::endl << "Part2: FirstDataBlock" << std::endl;
-
                 int counter = 1;
                 while (filesize > 512) {
                     blockIndex = this->inodes[retVal]->getNextDataBlockIndex();
@@ -256,25 +267,17 @@ int FileSystem::createFile(std::string filepath, std::string username, std::stri
                     char dataBlock[512] = {'\0'};
                     char data[512];
 
-                    for (int i = 0; i < 512; i++) {
+                    for (int i = 0; i < 512; i++)
                         data[i] = content[(counter * 512) + i];
-                        //std::cout << data[i];
-                    }
 
                     this->appendData(dataBlock, 0, data, 512);
                     this->writeData(blockIndex, dataBlock);
-
-                    //std::cout << std::endl << "Part2: FileSize Before: " << filesize << std::endl;
                     filesize -= 512;
-                    //std::cout << "Part2: FileSize After: " << filesize << std::endl;
 
                     counter++;
-
-                    //blockIndex = this->inodes[retVal]->getNextDataBlockIndex();
                 }
 
                 /// PART 3
-
                 if (filesize > 0) {
                     blockIndex = this->inodes[retVal]->getNextDataBlockIndex();
                     dataStr = this->openData(blockIndex);
@@ -282,174 +285,15 @@ int FileSystem::createFile(std::string filepath, std::string username, std::stri
                     char dataBlock[512] = {'\0'};
                     char data[512] = {'\0'};
 
-                    //counter++;
-
-                    for (int i = 0; i < filesize; i++) {
+                    for (int i = 0; i < filesize; i++)
                         data[i] = content[(counter * 512) + i];
-                        //std::cout << data[i];
-                    }
 
                     this->appendData(dataBlock, 0, data, filesize);
                     this->writeData(blockIndex, dataBlock);
                 }
-
-                /*
-                INode *inode = this->inodes[retVal];
-                int dataBlock2 = inode->getFirstDataBlockIndex();
-                std::string retStr = this->mMemblockDevice.readBlock(dataBlock2).toString();
-                std::cout << std::endl << "RetSTR: " << retStr << std::endl;
-
-                int nextDataBlock = inode->getNextDataBlockIndex();
-                while (nextDataBlock != -1) {
-                    std::string retStr = this->mMemblockDevice.readBlock(nextDataBlock).toString();
-                    std::cout << "RetSTR: " << retStr << std::endl;
-
-                    nextDataBlock = inode->getNextDataBlockIndex();
-                }
-                */
             }
         }
     }
-
-    /*
-    // old
-    if (!filename.empty()) {
-        INode *directory = NULL;
-        if (found) {
-            filepath.erase(i+1, filepath.length());
-            //std::cout << "FilePath: " << filepath << std::endl;
-            int inodeIndex = goToFolder(filepath);
-            if (inodeIndex < 0) {
-                throw std::out_of_range("No such filepath");
-            }
-            directory = this->inodes[inodeIndex];
-
-            if (!directory->isDir()) throw "create: cannot create: Not a directory";
-
-        } else {
-            directory = this->currentINode;
-        }
-
-        std::string newPWD = directory->getPWD() + filename;
-        if (isDir) {
-            newPWD += "/";
-        }
-
-        retVal = this->createInode(directory->getThisInodeIndex(), filename, 7, username, username, newPWD, isDir, false);
-
-
-        if (!isDir) {
-            //SKAPA DATA
-            //content.append('\0');
-            int filesize = content.length();
-
-            int nrOfBlocks = filesize / 512;
-            if (nrOfBlocks*512 < filesize || nrOfBlocks == 0)
-                nrOfBlocks++;
-
-            if (nrOfBlocks > 10) {
-                throw "Error: data to large";
-            }
-
-            int* freeData = new int[nrOfBlocks];
-
-            bool exist = true;
-            for(int i = 0; i < nrOfBlocks; i++) {
-                freeData[i] = this->findNextFreeData();
-                if(freeData[i] == -1)
-                    exist = false;
-            }
-
-            if(!exist) {
-                delete this->inodes[retVal];
-                this->inodes[retVal] = NULL;
-                this->bitmapINodes[retVal] = false;
-                throw "Error: no free spaces on harddrive.";
-            }
-
-            for(int i = 0; i < nrOfBlocks; i++) {
-                this->bitmapData[freeData[i]] = true;
-            }
-
-            this->inodes[retVal]->setFilesize(filesize);
-
-            for (int i = 0; i < nrOfBlocks; i++) {
-                this->inodes[retVal]->setSpecificDataBlock(i, freeData[i]);
-            }
-
-            if (filesize <= 512) {
-                std::string dataStr;
-                dataStr = this->openData(this->inodes[retVal]->getFirstDataBlockIndex());
-
-                char dataBlock[512] = {'\0'};
-                char data[512];
-
-                for (int i = 0; i < filesize; i++) {
-                    data[i] = content[i];
-                }
-
-                std::cout << "Filesize: " << filesize << std::endl;
-                this->appendData(dataBlock, 0, data, filesize);
-                this->writeData(this->inodes[retVal]->getFirstDataBlockIndex(), dataBlock);
-            } else {
-                ///PART 1
-
-                std::string dataStr;
-                dataStr = this->openData(this->inodes[retVal]->getFirstDataBlockIndex());
-
-                char dataBlock[512] = {'\0'};
-                char data[512];
-
-                for (int i = 0; i < 512; i++) {
-                    data[i] = content[i];
-                }
-
-                this->appendData(dataBlock, 0, data, 512);
-                this->writeData(this->inodes[retVal]->getFirstDataBlockIndex(), dataBlock);
-                filesize -= 512;
-
-                /// PART 2
-
-                //int blockIndex = this->inodes[retVal]->getNextDataBlockIndex();
-                while (filesize > 512) {
-                    int blockIndex = this->inodes[retVal]->getNextDataBlockIndex();
-                    dataStr = this->openData(blockIndex);
-
-                    char dataBlock[512] = {'\0'};
-                    char data[512];
-
-                    for (int i = 0; i < 512; i++) {
-                        data[i] = content[i];
-                    }
-
-                    this->appendData(dataBlock, 0, data, 512);
-                    this->writeData(this->inodes[retVal]->getFirstDataBlockIndex(), dataBlock);
-
-                    filesize -= 512;
-
-                    //blockIndex = this->inodes[retVal]->getNextDataBlockIndex();
-                }
-
-                /// PART 3
-
-                if (filesize > 0) {
-                    int blockIndex = this->inodes[retVal]->getNextDataBlockIndex();
-                    dataStr = this->openData(blockIndex);
-
-                    char dataBlock[512] = {'\0'};
-                    char data[512];
-
-                    for (int i = 0; i < filesize; i++) {
-                        data[i] = content[i];
-                    }
-
-                    this->appendData(dataBlock, 0, data, filesize);
-                    this->writeData(this->inodes[retVal]->getFirstDataBlockIndex(), dataBlock);
-                }
-            }
-        }
-    }
-    */
 
     return retVal;
 }
@@ -483,9 +327,6 @@ int FileSystem::createInode(unsigned short int parentInodeIndex, std::string fil
                 std::copy(tmpDataBlock.begin(), tmpDataBlock.end(), tmpData);
 
                 this->appendData(tmpData, tmpFileSize, data, 16);
-
-                //for(int i = 0; i < 512; i++)
-                    //std::cout << tmpData[i] << std::endl;
 
                 this->writeData(parent->getFirstDataBlockIndex(), tmpData);
                 parent->setFilesize(parent->getFilesize()+16);
@@ -523,10 +364,6 @@ int FileSystem::createInode(unsigned short int parentInodeIndex, std::string fil
             this->inodes[inodeIndex]->setFilesize(tmpFileSize);
             this->inodes[inodeIndex]->setDataBlock(dataIndex);
             this->writeData(dataIndex, dataBlock);
-
-            //for(int i = 0; i < 512; i++)
-                //std::cout << dataBlock[i] << std::endl;
-
         }
     } else {
         inodeIndex = -1;
@@ -594,8 +431,9 @@ int FileSystem::getAllDirectoriesFromDataBlock (INode* inode, int* &inodes, std:
 
     return nrOfDirs;
 }
+
 std::string FileSystem::listDir () {
-    std::string retStr = "";
+    std::string retStr = "Permission\tSize\tFolder\tOwner\tCreator\tName\n";
 
     int* inodesIndexes;
     std::string* directories;
@@ -626,11 +464,8 @@ std::string FileSystem::listDir (std::string &filepath) {
         std::string filename;
         bool found = this->splitFilepath(filename, filepath);
 
-        //std::cout << found << std::endl;
-
         if(found || filepath[0] == '/') {
             int inodeIndex = goToFolder(filepath);
-            //std::cout << inodeIndex << std::endl;
             location = this->inodes[inodeIndex];
         } else {
             location = this->currentINode;
@@ -654,13 +489,18 @@ std::string FileSystem::listDir (std::string &filepath) {
         }
     }
 
-    //std::cout << location->isDir() << std::endl;
+    bool* permissions;
+    this->checkPermissions(location->getProtection(), permissions);
+
+    if(!permissions[0])
+        throw "Error: permission denied.";
+
+    delete[] permissions;
 
     int* inodesIndexes;
     std::string* directories;
 
     int nrOfDirs = this->getAllDirectoriesFromDataBlock(location, inodesIndexes, directories);
-
 
     for (int i = 0; i < nrOfDirs; i++) {
         retStr += this->inodes[inodesIndexes[i]]->toString() + " " + directories[i] + (this->inodes[inodesIndexes[i]]->isDir() ? "/" : "");
@@ -676,7 +516,6 @@ std::string FileSystem::listDir (std::string &filepath) {
 }
 
 std::string FileSystem::openData(int blockIndex) {
-    //std::cout << blockIndex << std::endl;
     if(blockIndex < 0 || blockIndex >= 512) {
         throw std::out_of_range("Exception: out of range");
     }
@@ -687,17 +526,12 @@ int FileSystem::goToFolder(std::string filePath) {
     int inodeIndex = -1;
     INode* startFromInode = this->currentINode;                 // Relative path
 
-#ifdef DEBUG_FILESYSTEM
-    std::cout << "FilePath: " << filePath << std::endl;
-#endif
-
     if (filePath[0] == '/') {                                   // Absolute path - Start from root (0)
         startFromInode = this->inodes[0];
         filePath.erase(0, 1);
     }
 
     std::vector<std::string> names;
-
     std::string tmpStr;
     for (int i = 0; i < filePath.length(); i++) {
         if (filePath[i] != '/') {
@@ -707,14 +541,7 @@ int FileSystem::goToFolder(std::string filePath) {
             tmpStr = "";
         }
     }
-
     names.push_back(tmpStr);
-
-#ifdef DEBUG_FILESYSTEM
-    for(int i = 0; i < names.size(); i++) {
-        std::cout << "Name: " << names[i] << std::endl;
-    }
-#endif
 
     int i = 0;
     for (; i < names.size(); i++) {
@@ -729,6 +556,14 @@ int FileSystem::goToFolder(std::string filePath) {
         delete[] directories;
         directories = NULL;
 
+        bool* permissions;
+        this->checkPermissions(this->inodes[inodeIndex]->getProtection(), permissions);
+
+        if(!permissions[0])
+            throw "Error: permission denied.";
+
+        delete[] permissions;
+
         if (inodeIndex != -1 && this->inodes[inodeIndex]->isDir()) {
             startFromInode = this->inodes[inodeIndex];
             if (!startFromInode->isDir()) {
@@ -742,6 +577,7 @@ int FileSystem::goToFolder(std::string filePath) {
 
     return inodeIndex;
 }
+
 int FileSystem::moveToFolder() {
     this->currentINode = this->inodes[0];
     return 0;
@@ -756,8 +592,6 @@ int FileSystem::moveToFolder(const std::string filepath) {
 }
 
 std::string FileSystem::cat(std::string &filepath) {
-    //std::cout << "Filepath: " << filepath << std::endl;
-
     std::string content;
     char* actualData = NULL;
 
@@ -781,9 +615,6 @@ std::string FileSystem::cat(std::string &filepath) {
 
     int nrOfEntries = this->getAllDirectoriesFromDataBlock(location, inodesIndexes, directories);
 
-    /*for(int i = 0; i < nrOfEntries; i++) {
-        std::cout << directories[i] << std::endl;
-    }*/
     inodeIndex = this->findInodeIndexByName(directories, nrOfEntries, filename);
 
     if(inodeIndex == -1) {
@@ -796,17 +627,20 @@ std::string FileSystem::cat(std::string &filepath) {
     delete[] inodesIndexes;
     delete[] directories;
 
+    bool* permissions;
+    this->checkPermissions(final->getProtection(), permissions);
+
+    if(!permissions[0])
+        throw "Error: permission denied.";
+
+    delete[] permissions;
+
     int filesize = final->getFilesize();
-    //std::cout << "CatFileSize: " << filesize << std::endl;
 
     if(filesize == 0)
         throw "File i empty";
 
-    //std::cout << "Name: " << final->getFilename() << std::endl;
-    //std::cout << "Filesize: " << filesize << std::endl;
-
     int blockIndex = final->getFirstDataBlockIndex();
-    //std::cout << blockIndex << std::endl;
     content += this->openData(blockIndex);
 
     blockIndex = final->getNextDataBlockIndex();
@@ -815,15 +649,12 @@ std::string FileSystem::cat(std::string &filepath) {
         blockIndex = final->getNextDataBlockIndex();
     }
 
-    //content.append('\0');
     actualData = new char[filesize];
-
     for (int i = 0; i < filesize; i++) {
         actualData[i] = content[i];
     }
 
     actualData[filesize] = '\0';
-
     return actualData;
 }
 
@@ -836,10 +667,15 @@ int FileSystem::removeFolderEntry (INode* inode, std::string filename) {
     int inodeIndex = findInodeByName(inodeIndexes, directories, nrOfDirectories, filename);
     int entryIndex = findInodeIndexByName(directories, nrOfDirectories, filename);
 
-    //std::cout << "NrOfDirectories: " << nrOfDirectories << std::endl;
-    //std::cout << "entryIndex: " << entryIndex << std::endl;
-
     if(inodeIndex != -1) {
+
+        bool* permissions;
+        this->checkPermissions(this->inodes[inodeIndex]->getProtection(), permissions);
+
+        if(!permissions[1])
+            throw "Error: permission denied.";
+
+        delete[] permissions;
 
         bool okToDelete = true;
         if (this->inodes[inodeIndex]->isDir()) {
@@ -870,10 +706,7 @@ int FileSystem::removeFolderEntry (INode* inode, std::string filename) {
                 }
             }
 
-            //TODO delete here
-
             this->writeData(inode->getFirstDataBlockIndex(), dataBlock);
-
             deleted = inodeIndex;
         }
     }
@@ -895,11 +728,9 @@ bool FileSystem::removeFile(std::string filepath) {
         std::string filename;
         bool found = this->splitFilepath(filename, filepath);
 
-        //std::cout << found << std::endl;
-
         if(found || filepath[0] == '/') {
             int inodeIndex = goToFolder(filepath);
-            //std::cout << inodeIndex << std::endl;
+
             if(inodeIndex == -1)
                 throw "Error!!!";
             location = this->inodes[inodeIndex];
@@ -933,16 +764,13 @@ bool FileSystem::splitFilepath (std::string &filename, std::string &path) {
     }
 
     int n = i;
-    if(found) {
+    if(found)
         n = i+2;
-    }
     filename = path.substr((n), path.length());
 
     if (!filename.empty()) {
-
-        if (found) {
+        if (found)
             path.erase(i + 1, path.length());
-        }
     }
 
     return found;
@@ -959,7 +787,6 @@ int FileSystem::move (std::string from, std::string to) {
     INode* toInode;
 
     if(!fromFound) {
-        //std::cout << "From: Samma mapp" << std::endl;
         fromInode = this->currentINode;
     } else {
         int inodeIndexFrom = goToFolder(from);
@@ -967,7 +794,6 @@ int FileSystem::move (std::string from, std::string to) {
     }
 
     if(!toFound) {
-        //std::cout << "To: Samma mapp" << std::endl;
         toInode = this->currentINode;
     } else {
         int inodeIndexTo = goToFolder(to);
@@ -975,9 +801,36 @@ int FileSystem::move (std::string from, std::string to) {
     }
 
     int inodeIndex = this->fileExists(toInode, toFilename);
-    if (inodeIndex != -1) {
+    if (inodeIndex != -1)
         throw "Error: file exists.";
+
+    int* inodeIndexes;
+    std::string* directories;
+    int nrOfDirs = this->getAllDirectoriesFromDataBlock(fromInode, inodeIndexes, directories);
+    int indexInode = this->findInodeIndexByName(directories, nrOfDirs, fromFilename);
+
+    if(indexInode == -1) {
+        delete[] inodeIndexes;
+        delete[] directories;
+        throw "Error: file not found.";
     }
+
+    bool* permissions;
+    this->checkPermissions(toInode->getProtection(), permissions);
+
+    if(!permissions[1])
+        throw "Error: permission denied.";
+
+    delete[] permissions;
+
+    this->checkPermissions(this->inodes[inodeIndexes[indexInode]]->getProtection(), permissions);
+    delete[] inodeIndexes;
+    delete[] directories;
+
+    if(!permissions[1])
+        throw "Error: permission denied.";
+
+    delete[] permissions;
 
     // Removed from entry and rename
     int deletedInode = this->removeFolderEntry(fromInode, fromFilename);
@@ -986,26 +839,19 @@ int FileSystem::move (std::string from, std::string to) {
     // Add in other folder
     char data[16] = {'\0'};
     data[0] = (char) deletedInode;
-    for(int i = 0; i < 15; i++) {
+    for(int i = 0; i < 15; i++)
         data[i+1] = toFilename[i];
-    }
 
     int filesize = toInode->getFilesize();
     int iDataBlock = toInode->getFirstDataBlockIndex();
     std::string dataBlock = this->openData(iDataBlock);
-
     char cDataBlock[512];
-    for (int i = 0; i < 512; i++) {
+    for (int i = 0; i < 512; i++)
         cDataBlock[i] = dataBlock[i];
-    }
 
     this->appendData(cDataBlock, filesize ,data, 16);
     toInode->setFilesize(filesize + 16);
-
     this->writeData(iDataBlock, cDataBlock);
-
-    /*std::cout << from << " from filename: " << fromFilename << std::endl;
-    std::cout << to << " to filename: " << toFilename << std::endl;*/
 }
 
 int FileSystem::copy (std::string from, std::string to){
@@ -1022,7 +868,6 @@ int FileSystem::copy (std::string from, std::string to){
     int inodeIndexTo;
 
     if(!fromFound) {
-        std::cout << "From: Samma mapp" << std::endl;
         fromInode = this->currentINode;
     } else {
         inodeIndexFrom = goToFolder(from);
@@ -1030,7 +875,6 @@ int FileSystem::copy (std::string from, std::string to){
     }
 
     if(!toFound) {
-        std::cout << "To: Samma mapp" << std::endl;
         toInode = this->currentINode;
     } else {
         inodeIndexTo = goToFolder(to);
@@ -1047,6 +891,21 @@ int FileSystem::copy (std::string from, std::string to){
         delete[] directories;
         throw "Error: no such file.";
     }
+
+    bool* permissions;
+    this->checkPermissions(this->inodes[inodesIndex[inodeIndex]]->getProtection(), permissions);
+
+    if(!permissions[0] || !permissions[1])
+        throw "Error: permission denied.";
+
+    delete[] permissions;
+
+    this->checkPermissions(toInode->getProtection(), permissions);
+
+    if(!permissions[0] || !permissions[1])
+        throw "Error: permission denied.";
+
+    delete[] permissions;
 
     // Get copy of inode
     fromInode = this->inodes[inodesIndex[inodeIndex]];
@@ -1067,9 +926,8 @@ int FileSystem::copy (std::string from, std::string to){
             exist = false;
     }
 
-    if(freeInode == -1 || !exist) {
+    if(freeInode == -1 || !exist)
         throw "Error: no free spaces on harddrive.";
-    }
 
     int* toInodesIndexes;
     std::string* toDirectories;
@@ -1079,29 +937,24 @@ int FileSystem::copy (std::string from, std::string to){
     delete[] toInodesIndexes;
     delete[] toDirectories;
 
-    if (toInodeIndex != -1) {
+    if (toInodeIndex != -1)
         throw "Error: filename exists.";
-    }
 
     // No errors - set bitmap to taken
     this->bitmapINodes[freeInode] = true;
 
-    for(int i = 0; i < nrOfBlocksNeeded; i++) {
+    for(int i = 0; i < nrOfBlocksNeeded; i++)
         this->bitmapData[freeData[i]] = true;
-    }
 
     // Copy inode
     this->inodes[freeInode] = new INode(*fromInode);
     this->inodes[freeInode]->setFilename(toFilename);
 
-    for (int i = 0; i < nrOfBlocksNeeded; i++) {
+    for (int i = 0; i < nrOfBlocksNeeded; i++)
         this->inodes[freeInode]->setSpecificDataBlock(i, freeData[i]);
-    }
 
     // Copy all dataBlocks
     int test = fromInode->getFirstDataBlockIndex();
-    //std::cout << "Test: " << test << std::endl;
-    //std::cout << "Test: " << test << std::endl;
     std::string dataBlock = this->openData(test);
 
     char cDataBlock[512];
@@ -1118,38 +971,31 @@ int FileSystem::copy (std::string from, std::string to){
             cDataBlock[i] = dataBlock[i];
         }
         this->writeData(this->inodes[freeInode]->getNextDataBlockIndex(), cDataBlock);
-
         iDataBlockFrom = fromInode->getNextDataBlockIndex();
     }
 
     // Add inodeEntry to parent
     char cFilename[16] = {'\0'};
     cFilename[0] = (char) freeInode;
-    for (int i = 0; i < 15; i++) {
+    for (int i = 0; i < 15; i++)
         cFilename[i + 1] = toFilename[i];
-    }
 
     std::string toDataBlock = this->openData(toInode->getFirstDataBlockIndex());
     char cToDataBlock[512];
-    for(int i = 0; i < 512; i++) {
+    for(int i = 0; i < 512; i++)
         cToDataBlock[i] = toDataBlock[i];
-    }
+
     this->appendData(cToDataBlock, toInode->getFilesize(), cFilename, 16);
     this->writeData(toInode->getFirstDataBlockIndex(), cToDataBlock);
     toInode->setFilesize(toInode->getFilesize()+16);
-
-    /*std::cout << from << " from filename: " << fromFilename << std::endl;
-    std::cout << to << " to filename: " << toFilename << std::endl;*/
 }
 
 int FileSystem::appendFile(std::string to, std::string from) {
-
     std::string fromFilename;
     std::string toFilename;
 
     bool fromFound = splitFilepath (fromFilename, from);
     bool toFound = splitFilepath (toFilename, to);
-
 
     INode* fromInode;
     INode* toInode;
@@ -1158,7 +1004,6 @@ int FileSystem::appendFile(std::string to, std::string from) {
     int inodeIndexTo;
 
     if(!fromFound) {
-        //std::cout << "From: Samma mapp" << std::endl;
         fromInode = this->currentINode;
     } else {
         inodeIndexFrom = goToFolder(from);
@@ -1166,13 +1011,11 @@ int FileSystem::appendFile(std::string to, std::string from) {
     }
 
     if(!toFound) {
-        //std::cout << "To: Samma mapp" << std::endl;
         toInode = this->currentINode;
     } else {
         inodeIndexTo = goToFolder(to);
         toInode = this->inodes[inodeIndexTo];
     }
-
 
     int fromINodeIndex = this->fileExists(fromInode, fromFilename);
     int toINodeIndex = this->fileExists(toInode, toFilename);
@@ -1181,13 +1024,20 @@ int FileSystem::appendFile(std::string to, std::string from) {
         throw "Error file does'nt exists.";
     }
 
-    // Nytt
     int *inodeIndexes;
     std::string *directories;
     int nrOfDirs = this->getAllDirectoriesFromDataBlock(fromInode, inodeIndexes, directories);
     int inodeIndex = this->findInodeIndexByName(directories, nrOfDirs, fromFilename);
 
     fromInode = this->inodes[inodeIndexes[inodeIndex]];
+
+    bool* permissions;
+    this->checkPermissions(fromInode->getProtection(), permissions);
+
+    if(!permissions[0])
+        throw "Error: permission denied.";
+
+    delete[] permissions;
 
     inodeIndexes = NULL;
     directories = NULL;
@@ -1196,32 +1046,24 @@ int FileSystem::appendFile(std::string to, std::string from) {
 
     toInode = this->inodes[inodeIndexes[inodeIndex]];
 
+    this->checkPermissions(toInode->getProtection(), permissions);
+
+    if(!permissions[1])
+        throw "Error: permission denied.";
+
+    delete[] permissions;
+
     delete[] inodeIndexes;
     delete[] directories;
-    //Slut på nytt
 
-    //fromInode = this->inodes[fromINodeIndex];
-    //toInode = this->inodes[toINodeIndex];
-
-    /*int blockIndex = toInode->getFirstDataBlockIndex();
-    std::cout << "BlockIndex: " << blockIndex << std::endl;
-    blockIndex = toInode->getNextDataBlockIndex();
-
-    while (blockIndex != -1) {
-        std::cout << "BlockIndex: " << blockIndex << std::endl;
-        blockIndex = toInode->getNextDataBlockIndex();
-    }*/
-
-    if (fromInode->isDir() || toInode->isDir()) {
+    if (fromInode->isDir() || toInode->isDir())
         throw "Error: can only append to files.";
-    }
 
     int fromFileSize = fromInode->getFilesize();
     int toFileSize = toInode->getFilesize();
 
-    if (fromFileSize + toFileSize > INode::MAX_FILESIZE) {
+    if (fromFileSize + toFileSize > INode::MAX_FILESIZE)
         throw "Error: file's to big to fit inside.";
-    }
 
     int fromBlockIndex = fromInode->getFirstDataBlockIndex();
     std::string fromContent = this->openData(fromBlockIndex);
@@ -1235,10 +1077,9 @@ int FileSystem::appendFile(std::string to, std::string from) {
     fromContent = fromContent.substr(0, fromFileSize);
 
     int toLastTmpBlockIndex = 0;
-
     int toLastBlockIndex = toLastTmpBlockIndex = toInode->getFirstDataBlockIndex();
-
     toLastBlockIndex = toInode->getNextDataBlockIndex();
+
     int toBlockCounter = 1;
     while (toLastBlockIndex != -1) {
         toLastTmpBlockIndex = toLastBlockIndex;
@@ -1247,62 +1088,48 @@ int FileSystem::appendFile(std::string to, std::string from) {
     }
 
     int tmpToFileSize = toFileSize;
-
-    for (int i = 0; i < toBlockCounter - 1; i++) {
+    for (int i = 0; i < toBlockCounter - 1; i++)
         tmpToFileSize -= 512;
-    }
 
     int byteRemainingTo = 512 - tmpToFileSize;
     int tmpFromFileSize = fromFileSize - byteRemainingTo;
 
     int nrOfBlocksNeeded = tmpFromFileSize / 512;
-    if (nrOfBlocksNeeded * 512 < tmpFromFileSize) {
+    if (nrOfBlocksNeeded * 512 < tmpFromFileSize)
         nrOfBlocksNeeded++;
-    }
 
     int *freeDataBlocks = new int[nrOfBlocksNeeded];
     bool freeFound = true;
     for (int i = 0; i < nrOfBlocksNeeded; i++) {
         freeDataBlocks[i] = this->findNextFreeData();
-        if (freeDataBlocks[i] == -1) {
+        if (freeDataBlocks[i] == -1)
             freeFound = false;
-        }
     }
 
-    if (!freeFound) {
+    if (!freeFound)
         throw "Error: no free data blocks.";
-    }
 
     char cToLastBlockData[512];
     std::string toLastBlockData = this->openData(toLastTmpBlockIndex);
-    for (int i = 0; i < 512; i++) {
+    for (int i = 0; i < 512; i++)
         cToLastBlockData[i] = toLastBlockData[i];
-    }
 
-    for (int i = tmpToFileSize; i < 512; i++) {
+    for (int i = tmpToFileSize; i < 512; i++)
         cToLastBlockData[i] = fromContent[i - tmpToFileSize];
-    }
 
     this->writeData(toLastTmpBlockIndex, cToLastBlockData);
 
     int tmpBlockIndex = toBlockCounter;
-    for (int i = 0; i < nrOfBlocksNeeded; i++) {
-        //std::cout << "toBlockCounter: " << toBlockCounter << std::endl;
+    for (int i = 0; i < nrOfBlocksNeeded; i++)
         toInode->setSpecificDataBlock(tmpBlockIndex++, freeDataBlocks[i]);
-        //std::cout << "freeDataBlocks[" << i << "]: " << freeDataBlocks[i] << std::endl;
-    }
-    //std::cout << "toBlockCounter: " << toBlockCounter << std::endl;
 
     int newBlockIndex = toLastTmpBlockIndex + 1;
-    //std::cout << "newBlockIndex: " << newBlockIndex << std::endl;
     int startFrom = byteRemainingTo;
     while (newBlockIndex != -1) {
         char cDataBlock[512];
-        //std::string dataBlockStr = this->openData(newBlockIndex);
         for (int i = 0; i < 512; i++) {
             cDataBlock[i] = fromContent[startFrom + i];
         }
-
         this->writeData(newBlockIndex, cDataBlock);
 
         startFrom += 512;
@@ -1310,22 +1137,65 @@ int FileSystem::appendFile(std::string to, std::string from) {
     }
 
     toInode->setFilesize(toInode->getFilesize() + fromInode->getFilesize());
-
     delete[] freeDataBlocks;
-    freeDataBlocks = NULL;
-
-    /*blockIndex = toInode->getFirstDataBlockIndex();
-    std::cout << "LastBlockIndex: " << blockIndex << std::endl;
-    std::cout << this->openData(blockIndex) << std::endl;
-
-    blockIndex = toInode->getNextDataBlockIndex();
-
-    while (blockIndex != -1) {
-        std::cout << "LastBlockIndex: " << blockIndex << std::endl;
-        std::cout << this->openData(blockIndex) << std::endl;
-
-        blockIndex = toInode->getNextDataBlockIndex();
-    }*/
 
     return 0;
+}
+
+int FileSystem::changePermission(std::string permission, std::string filepath) {
+    int iPermission = std::stoi(permission, NULL);
+    if(iPermission < 1 || iPermission > 7)
+        throw "Error: invalid permission";
+
+    std::string filename;
+    bool found = this->splitFilepath(filename, filepath);
+
+    INode* location;
+    if(!found) {
+        location = this->currentINode;
+    } else {
+        int inodeIndex = this->goToFolder(filepath);
+        if(inodeIndex == -1)
+            throw "Error: invalid filepath.";
+        location = this->inodes[inodeIndex];
+    }
+
+    int* inodeIndexes;
+    std::string* directories;
+    int nrOfDirs = this->getAllDirectoriesFromDataBlock(location, inodeIndexes, directories);
+    int inodeIndex = this->findInodeIndexByName(directories, nrOfDirs, filename);
+
+    if (inodeIndex == -1) {
+        delete[] inodeIndexes;
+        delete[] directories;
+        throw "Error: invalid filepath.";
+    }
+
+    location = this->inodes[inodeIndexes[inodeIndex]];
+
+    bool* permissions;
+    this->checkPermissions(location->getProtection(), permissions);
+
+    if(!permissions[1]) {
+        int counter = 0;
+        bool passOK = false;
+        do {
+            std::cout << "[sudo] password: ";
+            std::string password;
+            std::getline(std::cin, password);
+
+            if(password != "root") counter++;
+            else passOK = true;
+        } while (counter < 3 && !passOK);
+
+        if(!passOK)
+            throw "Error: permission denied.";
+    }
+
+    delete[] permissions;
+
+    location->setProtection((const unsigned short) iPermission);
+
+    delete[] inodeIndexes;
+    delete[] directories;
 }

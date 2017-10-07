@@ -3,11 +3,11 @@
 #include "filesystem.h"
 
 const int MAXCOMMANDS = 8;
-const int NUMAVAILABLECOMMANDS = 15;
+const int NUMAVAILABLECOMMANDS = 16;
 
 std::string availableCommands[NUMAVAILABLECOMMANDS] = {
     "quit","format","ls","create","cat","createImage","restoreImage",
-    "rm","cp","append","mv","mkdir","cd","pwd","help"
+    "rm","cp","append","mv","mkdir","cd","pwd","help", "chmod"
 };
 
 /* Takes usercommand from input and returns number of commands, commands are stored in strArr[] */
@@ -26,6 +26,7 @@ void rm(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 void mv(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 void cp(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 void append(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
+void chmod(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 
 int main(void) {
     FileSystem fileSystem;
@@ -51,6 +52,7 @@ int main(void) {
     //fileSystem.createFile("b.txt", user, contentB, false);
 
     fileSystem.appendFile("a.txt", "b.txt");
+    fileSystem.changePermission("4", "b");
 
 
     /*
@@ -116,6 +118,9 @@ int main(void) {
                 break;
             case 14: // help
                 std::cout << help() << std::endl;
+                break;
+            case 15: //chmod
+                chmod(fileSystem, commandArr, nrOfCommands);
                 break;
             default:
                 std::cout << "Unknown command: " << commandArr[0] << std::endl;
@@ -194,16 +199,29 @@ void mkdir(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, std::s
     if (nrOfCommands > 1) {
         std::string filepath = strArr[1];
         std::string garbage;
-        fileSystem.createFile(filepath, username, garbage, true);
+        try {
+            fileSystem.createFile(filepath, username, garbage, true);
+        } catch (const char* e) {
+            std::cout << e << std::endl;
+        }
     }
 }
 
 void cd(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
     if (nrOfCommands > 1) {
         std::string filepath = strArr[1];
-        int retVal = fileSystem.moveToFolder(filepath);
+
+        try {
+            int retVal = fileSystem.moveToFolder(filepath);
+        } catch (const char* e) {
+            std::cout << e << std::endl;
+        }
     } else {
-        int retVal = fileSystem.moveToFolder();
+        try {
+            int retVal = fileSystem.moveToFolder();
+        } catch (const char* e) {
+            std::cout << e << std::endl;
+        }
     }
 }
 
@@ -277,6 +295,18 @@ void append(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         std::string toFilepath = strArr[2];
         try {
             fileSystem.appendFile(fromFilepath, toFilepath);
+        } catch (const char *e) {
+            std::cout << e << std::endl;
+        }
+    }
+}
+
+void chmod(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
+    if (nrOfCommands > 2) {
+        std::string permission = strArr[1];
+        std::string filepath = strArr[2];
+        try {
+            fileSystem.changePermission(permission, filepath);
         } catch (const char *e) {
             std::cout << e << std::endl;
         }

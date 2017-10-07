@@ -178,7 +178,21 @@ std::string INode::toString() {
 		retStr += "- ";
 	}
 
-	retStr += std::to_string(this->filesize) + "\t";
+	retStr += "\t\t";
+
+	if(!this->isDir())
+		if(this->filesize < 100)
+			retStr += std::to_string(this->filesize) + "\t\t";
+		else
+			retStr += std::to_string(this->filesize) + "\t";
+	else
+		retStr += "-\t\t";
+
+	if(!this->isDir())
+		retStr += "false\t";
+	else
+		retStr += "true\t";
+
 	retStr += this->owner + "\t";
 	retStr += this->creator + "\t";
 
