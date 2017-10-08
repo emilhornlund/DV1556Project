@@ -8,12 +8,11 @@
 class Block
 {
 private:
-    char *block;
-    int nrOfElements;
+    char block[512];
 
 public:
     /* Constructor */
-    Block(int nrOfElements = 512);    // overloaded (default) constructor
+    Block();    // overloaded (default) constructor
     Block(const Block &other); // copy-constructor
 
     /* Destructor */
@@ -24,7 +23,7 @@ public:
     char operator[] (int index) const;  // []-operator
     friend std::ostream& operator<<(std::ostream &os, const Block& blck)
     {
-        for (int i = 0; i < blck.nrOfElements; ++i)
+        for (int i = 0; i < 512; ++i)
             os << blck.block[i];
         return os;
     }

@@ -12,7 +12,7 @@ public:
 
     /* Operators */
     MemBlockDevice& operator=(const MemBlockDevice &other);
-    Block &operator[] (int index) const;
+    const Block &operator[] (int index) const;
 
     /* Returns amount of free blocks */
     int spaceLeft() const;
@@ -21,6 +21,7 @@ public:
     int writeBlock(int blockNr, const std::vector<char> &vec);
     int writeBlock(int blockNr, const std::string &strBlock);
     int writeBlock(int blockNr, const char cArr[]);     // Use with care, make sure that cArr has at least the same dimension as block
+    int writeBlock(int blockNr, const Block block);
 
     /* Reads a block */
     Block readBlock(int blockNr) const;

@@ -2,8 +2,7 @@
 #define FILESYSTEM_H
 
 #include "memblockdevice.h"
-
-class INode;
+#include "INode.h"
 
 class FileSystem
 {
@@ -36,6 +35,8 @@ private:
     int fileExists(INode *inode, std::string filename);
     void checkPermissions(int permission, bool* &permissions);
 
+    void writeInode (INode inode, std::ofstream &outFile);
+
 public:
     FileSystem();
     ~FileSystem();
@@ -57,6 +58,8 @@ public:
     int copy (std::string from, std::string to);
     int appendFile(std::string to, std::string from);
     int changePermission(std::string permission, std::string filepath);
+    void saveFilesystem();
+    void restoreFilesystem();
 };
 
 #endif // FILESYSTEM_H

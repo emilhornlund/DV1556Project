@@ -2,41 +2,27 @@
 #include <stdexcept>
 
 
-Block::Block(int size) {
-    /* Setting size */
-    if (size > 0)
-        this->nrOfElements = size;
-    else
-        this->nrOfElements = 512;
-
-    this->block = new char[this->nrOfElements];
-
-    // Sets everything to 0
+Block::Block() {
     this->reset();
 }
 
 Block::Block(const Block &other) {
-    this->nrOfElements = other.nrOfElements;
-    this->block = new char[this->nrOfElements];
-    for (int i = 0; i < this->nrOfElements; ++i)
+    for (int i = 0; i < 512; ++i)
         this->block[i] = other.block[i];
 }
 
 Block::~Block() {
-    delete [] this->block;
+
 }
 
 Block &Block::operator =(const Block &other) {
-    delete [] this->block;
-    this->nrOfElements = other.nrOfElements;
-    this->block = new char[this->nrOfElements];
-    for (int i = 0; i < this->nrOfElements; ++i)
+    for (int i = 0; i < 512; ++i)
         this->block[i] = other.block[i];
     return *this;
 }
 
 char Block::operator[](int index) const {
-    if (index < 0 || index >= this->nrOfElements) {
+    if (index < 0 || index >= 512) {
         throw std::out_of_range("Illegal access\n");
     }
     else {
@@ -45,12 +31,12 @@ char Block::operator[](int index) const {
 }
 
 void Block::reset(char c) {
-    for (int i = 0; i < this->nrOfElements; ++i)
+    for (int i = 0; i < 512; ++i)
         this->block[i] = c;
 }
 
 int Block::size() const {
-    return this->nrOfElements;
+    return 512;
 }
 
 Block Block::readBlock() const {
@@ -59,8 +45,8 @@ Block Block::readBlock() const {
 
 int Block::writeBlock(const std::string &strBlock) {
     int output = -2;    // Assume out of range
-    if (strBlock.size() == (unsigned long)this->nrOfElements) {
-        for (int i = 0; i < this->nrOfElements; ++i) {
+    if (strBlock.size() == (unsigned long)512) {
+        for (int i = 0; i < 512; ++i) {
             this->block[i] = strBlock[i];
         }
         output = 1;
@@ -71,7 +57,7 @@ int Block::writeBlock(const std::string &strBlock) {
 
 int Block::writeBlock(const std::vector<char> &vec) {
     int output = -2; // Assume not the same dimension
-    if (vec.size() == (unsigned long)this->nrOfElements) {
+    if (vec.size() == (unsigned long)512) {
         for (unsigned long int i = 0; i < vec.size(); ++i) {
            this->block[i] = vec[i];
         }
@@ -84,15 +70,15 @@ int Block::writeBlock(const std::vector<char> &vec) {
 }
 
 void Block::writeBlock(const char cArr[]) {
-    for (int i = 0; i < this->nrOfElements; ++i) {
+    for (int i = 0; i < 512; ++i) {
         this->block[i] = cArr[i];
     }
 }
 
 std::string Block::toString() const {
     std::string output;
-    output.reserve(this->nrOfElements);
-    for (int i = 0; i < this->nrOfElements; ++i)
+    output.reserve(512);
+    for (int i = 0; i < 512; ++i)
         output += this->block[i];
     return output;
 }
