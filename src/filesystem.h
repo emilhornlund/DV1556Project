@@ -29,24 +29,22 @@ private:
     int getAllDirectoriesFromDataBlock (INode* inode, int* &inodes, std::string* &directories);
     std::string openData(int blockIndex);
     int _appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize);
-    int goToFolder(std::string filePath);
+    int goToFolder(std::string &filePath);
     int removeFolderEntry (INode* inode, std::string filename);
     bool splitFilepath (std::string &filename, std::string &path);
     int fileExists(INode *inode, std::string filename);
     void checkPermissions(int permission, bool* &permissions);
-
-    void writeInode (INode inode, std::ofstream &outFile);
 
 public:
     FileSystem();
     ~FileSystem();
 
     int createFile(std::string filepath, std::string username, std::string &content, const bool isDir);
-    int createInode(unsigned short int parentInodeIndex, std::string filename, unsigned short int protection,
+    int createInode(unsigned int parentInodeIndex, std::string filename, unsigned int protection,
                         std::string creator, std::string owner, std::string pwd, bool isDir, bool isHidden);
     bool removeFile(std::string filepath);
     int moveToFolder();
-    int moveToFolder(const std::string filepath);
+    int moveToFolder(std::string &filepath);
     std::string listDir ();
     std::string listDir (std::string &filepath);
     std::string getPWD() const;
@@ -58,8 +56,8 @@ public:
     int copy (std::string from, std::string to);
     int appendFile(std::string to, std::string from);
     int changePermission(std::string permission, std::string filepath);
-    void saveFilesystem();
-    void restoreFilesystem();
+    void saveFilesystem(std::string path);
+    void restoreFilesystem(std::string path);
 };
 
 #endif // FILESYSTEM_H

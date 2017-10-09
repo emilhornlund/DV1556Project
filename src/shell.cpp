@@ -28,8 +28,8 @@ void mv(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 void cp(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 void append(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 void chmod(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
-void saveFilesystem(FileSystem &fileSystem);
-void restoreFilesystem(FileSystem &fileSystem);
+void saveFilesystem(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
+void restoreFilesystem(FileSystem &fileSystem, std::string *strArr, int nrOfCommands);
 
 int main(void) {
     FileSystem fileSystem;
@@ -56,6 +56,7 @@ int main(void) {
 
     fileSystem.appendFile("a.txt", "b.txt");
     fileSystem.changePermission("4", "b");*/
+    fileSystem.restoreFilesystem("filesystem.fs");
 
     do {
         currentDir = fileSystem.getPWD();
@@ -84,10 +85,10 @@ int main(void) {
                 cat(fileSystem, commandArr, nrOfCommands);
                 break;
             case 5: // createImage
-                saveFilesystem(fileSystem);
+                saveFilesystem(fileSystem, commandArr, nrOfCommands);
                 break;
             case 6: // restoreImage
-                restoreFilesystem(fileSystem);
+                restoreFilesystem(fileSystem, commandArr, nrOfCommands);
                 break;
             case 7: // rm
                 rm(fileSystem, commandArr, nrOfCommands);
@@ -170,6 +171,7 @@ std::string help() {
     helpStr += "* mkdir  <directory>:               Creates a new directory called <directory>\n";
     helpStr += "* cd     <directory>:               Changes current working directory to <directory>\n";
     helpStr += "* pwd:                              Get current working directory\n";
+    helpStr += "* chmod  <permission> <filepath>:   Changes permission on a file or folder\n";
     helpStr += "* help:                             Prints this help screen\n";
     return helpStr;
 }
@@ -198,6 +200,8 @@ void mkdir(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, std::s
         } catch (const char* e) {
             std::cout << e << std::endl;
         }
+    } else {
+        std::cout << "Usage: mkdir <folder/folderpath>" << std::endl;
     }
 }
 
@@ -228,6 +232,8 @@ void cat(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         } catch (const char* e) {
             std::cout << e << std::endl;
         }
+    } else {
+        std::cout << "Usage: cat <filepath>" << std::endl;
     }
 }
 
@@ -245,6 +251,8 @@ void create(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, const
         catch (const char *e) {
             std::cout << e << std::endl;
         }
+    } else {
+        std::cout << "Usage: create <filepath>" << std::endl;
     }
 }
 
@@ -256,6 +264,8 @@ void rm(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         } catch (const char *e) {
             std::cout << e << std::endl;
         }
+    } else {
+        std::cout << "Usage: rm <folder/file -path>" << std::endl;
     }
 }
 
@@ -268,6 +278,8 @@ void mv(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         } catch (const char *e) {
             std::cout << e << std::endl;
         }
+    } else {
+        std::cout << "Usage: mv <filepath> <filepath>" << std::endl;
     }
 }
 
@@ -280,6 +292,8 @@ void cp(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         } catch (const char *e) {
             std::cout << e << std::endl;
         }
+    } else {
+        std::cout << "Usage: cp <filepath> <filepath>" << std::endl;
     }
 }
 
@@ -292,6 +306,8 @@ void append(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         } catch (const char *e) {
             std::cout << e << std::endl;
         }
+    } else {
+        std::cout << "Usage: append <filepath> <filepath>" << std::endl;
     }
 }
 
@@ -304,21 +320,33 @@ void chmod(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         } catch (const char *e) {
             std::cout << e << std::endl;
         }
+    } else {
+        std::cout << "Usage: chmod <permission (1-7)> <filepath>" << std::endl;
     }
 }
 
-void saveFilesystem(FileSystem &fileSystem) {
-    /*std::ofstream outFile;
-    outFile.open("filesystem.fs", std::ios::out | std::ios::binary);
-    outFile.write((char*) &fileSystem, sizeof(FileSystem));
-    outFile.close();*/
-    fileSystem.saveFilesystem();
+void saveFilesystem(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
+    if (nrOfCommands > 1) {
+        std::string path = strArr[1];
+        try {
+            fileSystem.saveFilesystem(path);
+        } catch (const char* e) {
+            std::cout << e << std::endl;
+        }
+    } else {
+        std::cout << "Usage: createImage <path>" << std::endl;
+    }
 }
 
-void restoreFilesystem(FileSystem &fileSystem){
-    /*std::ifstream inFile;
-    inFile.open("filesystem.fs", std::ios::in | std::ios::binary);
-    inFile.read((char*) &fileSystem, sizeof(FileSystem));
-    inFile.close();*/
-    fileSystem.restoreFilesystem();
+void restoreFilesystem(FileSystem &fileSystem, std::string *strArr, int nrOfCommands){
+    if (nrOfCommands > 1) {
+        std::string path = strArr[1];
+        try {
+            fileSystem.restoreFilesystem(path);
+        } catch (const char* e) {
+            std::cout << e << std::endl;
+        }
+    } else {
+        std::cout << "Usage: restoreImage <path>" << std::endl;
+    }
 }

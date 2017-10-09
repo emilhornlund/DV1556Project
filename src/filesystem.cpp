@@ -1,5 +1,4 @@
 #include "filesystem.h"
-#include "INode.h"
 #include <iostream>
 #include <fstream>
 
@@ -31,7 +30,7 @@ void FileSystem::format () {
 }
 
 int FileSystem::findNextFreeData() {
-    short int retVal = -1;
+    int retVal = -1;
     int stopIndex = (this->bitmapDataIndex - 1) % MAX_INT;
     bool found = false;
 
@@ -48,7 +47,7 @@ int FileSystem::findNextFreeData() {
 }
 
 int FileSystem::findNextFreeInode() {
-    short int retVal = -1;
+    int retVal = -1;
     int stopIndex = (this->bitmapInodeIndex - 1) % MAX_INT;
     bool found = false;
 
@@ -196,6 +195,9 @@ int FileSystem::createFile(std::string filepath, std::string username, std::stri
         }
         retVal = this->createInode(location->getThisInodeIndex(), filename, 7, username, username, newPWD, isDir, false);
 
+        if(retVal == -1)
+            throw "Error: filename too long.";
+
         if (!isDir) {
             int filesize = content.length();
 
@@ -304,11 +306,11 @@ int FileSystem::createFile(std::string filepath, std::string username, std::stri
     return retVal;
 }
 
-int FileSystem::createInode(unsigned short int parentInodeIndex, std::string filename, unsigned short int protection, std::string creator, std::string owner, std::string pwd, bool isDir, bool isHidden) {
+int FileSystem::createInode(unsigned int parentInodeIndex, std::string filename, unsigned int protection, std::string creator, std::string owner, std::string pwd, bool isDir, bool isHidden) {
     int inodeIndex = this->findNextFreeInode();
 
-    if(filename.length() > 13 || owner.length() > 10 || creator.length() > 10) {
-        throw "Error: filename and/or username too long.";
+    if(owner.length() > 10 || creator.length() > 10) {
+        throw "Error: username or creatorname too long.";
     }
 
     if(pwd.length() > 512) {
@@ -316,7 +318,7 @@ int FileSystem::createInode(unsigned short int parentInodeIndex, std::string fil
     }
 
     if (this->currentINode != NULL) {
-        if(filename.length() < 14) {
+        if(filename.length() < 16) {
             INode *parent = this->inodes[parentInodeIndex];
 
             int tmpFileSize = parent->getFilesize();
@@ -377,10 +379,10 @@ int FileSystem::createInode(unsigned short int parentInodeIndex, std::string fil
             cPwd[i] = pwd[i];
         }
 
-        cFilename[filename.length()] = '\0';
+        /*cFilename[filename.length()] = '\0';
         cOwner[owner.length()] = '\0';
         cCreator[creator.length()] = '\0';
-        cPwd[pwd.length()] = '\0';
+        cPwd[pwd.length()] = '\0';*/
 
         this->inodes[inodeIndex] = new INode(parentInodeIndex, inodeIndex, cFilename, protection, cCreator, cOwner, cPwd, tmpFileSize, isDir);
         this->inodes[inodeIndex]->setFilesize(0);
@@ -494,6 +496,7 @@ std::string FileSystem::listDir () {
 std::string FileSystem::listDir (std::string &filepath) {
     std::string retStr = "";
     INode* location;
+    bool absolute = false;
 
     if(filepath == "") {
         location = this->currentINode;
@@ -503,16 +506,26 @@ std::string FileSystem::listDir (std::string &filepath) {
 
         if(found || filepath[0] == '/') {
             int inodeIndex = goToFolder(filepath);
+
+            if(inodeIndex == -1)
+                throw "Error: invalid path";
+
             location = this->inodes[inodeIndex];
+            if(filename[0] == '/')
+                filename.erase(0, 1);
+            absolute = true;
         } else {
             location = this->currentINode;
         }
 
-        if(filename[0] != '/') {
+        if(!absolute) {
             int *inodesIndexes;
             std::string *directories;
             int nrOfEntries = this->getAllDirectoriesFromDataBlock(location, inodesIndexes, directories);
             int inodeIndex = this->findInodeIndexByName(directories, nrOfEntries, filename);
+
+            if(inodeIndex == -1)
+                throw "Error: invalid path";
 
             if (!this->inodes[inodesIndexes[inodeIndex]]->isDir()) {
                 delete[] inodesIndexes;
@@ -523,6 +536,16 @@ std::string FileSystem::listDir (std::string &filepath) {
             location = this->inodes[inodesIndexes[inodeIndex]];
             delete[] inodesIndexes;
             delete[] directories;
+        } else if (filename != filepath) {
+            int *inodesIndexes;
+            std::string *directories;
+            int nrOfEntries = this->getAllDirectoriesFromDataBlock(location, inodesIndexes, directories);
+            int inodeIndex = this->findInodeIndexByName(directories, nrOfEntries, filename);
+
+            if(inodeIndex == -1)
+                throw "Error: invalid path";
+
+            location = this->inodes[inodesIndexes[inodeIndex]];
         }
     }
 
@@ -559,8 +582,8 @@ std::string FileSystem::openData(int blockIndex) {
     return this->mMemblockDevice.readBlock(blockIndex).toString();
 }
 
-int FileSystem::goToFolder(std::string filePath) {
-    int inodeIndex = -1;
+int FileSystem::goToFolder(std::string &filePath) {
+    int inodeIndex = -2;
     INode* startFromInode = this->currentINode;                 // Relative path
 
     if (filePath[0] == '/') {                                   // Absolute path - Start from root (0)
@@ -569,48 +592,54 @@ int FileSystem::goToFolder(std::string filePath) {
     }
 
     std::vector<std::string> names;
-    std::string tmpStr;
-    for (int i = 0; i < filePath.length(); i++) {
-        if (filePath[i] != '/') {
-            tmpStr += filePath[i];
-        } else {
-            names.push_back(tmpStr);
-            tmpStr = "";
-        }
-    }
-    names.push_back(tmpStr);
 
-    int i = 0;
-    for (; i < names.size(); i++) {
-        int* inodeIndexes;
-        std::string* directories;
-        int nrOfDirectories = this->getAllDirectoriesFromDataBlock(startFromInode, inodeIndexes, directories);
-
-        inodeIndex = findInodeByName(inodeIndexes, directories, nrOfDirectories, names[i]);
-
-        delete[] inodeIndexes;
-        delete[] directories;
-
-
-
-        if (inodeIndex != -1 && this->inodes[inodeIndex]->isDir()) {
-            bool* permissions;
-            this->checkPermissions(this->inodes[inodeIndex]->getProtection(), permissions);
-
-            if(!permissions[0])
-                throw "Error: permission denied.";
-
-            delete[] permissions;
-
-            startFromInode = this->inodes[inodeIndex];
-            if (!startFromInode->isDir()) {
-                throw "Not a directory";
+    if (filePath.length() > 0) {
+        std::string tmpStr;
+        for (int i = 0; i < filePath.length(); i++) {
+            if (filePath[i] != '/') {
+                tmpStr += filePath[i];
+            } else {
+                names.push_back(tmpStr);
+                tmpStr = "";
             }
-        } else {
-            inodeIndex = -1;
-            break;
         }
+
+        names.push_back(tmpStr);
+
+        int i = 0;
+        for (; i < names.size(); i++) {
+            int *inodeIndexes;
+            std::string *directories;
+            int nrOfDirectories = this->getAllDirectoriesFromDataBlock(startFromInode, inodeIndexes, directories);
+
+            inodeIndex = findInodeByName(inodeIndexes, directories, nrOfDirectories, names[i]);
+
+            delete[] inodeIndexes;
+            delete[] directories;
+
+            if (inodeIndex != -1 && this->inodes[inodeIndex]->isDir()) {
+                bool *permissions;
+                this->checkPermissions(this->inodes[inodeIndex]->getProtection(), permissions);
+
+                if (!permissions[0])
+                    throw "Error: permission denied.";
+
+                delete[] permissions;
+
+                startFromInode = this->inodes[inodeIndex];
+                if (!startFromInode->isDir()) {
+                    throw "Not a directory";
+                }
+            } else {
+                inodeIndex = -1;
+                break;
+            }
+        }
+
     }
+
+    if(startFromInode->getThisInodeIndex() == 0 && inodeIndex == -2)
+        inodeIndex = 0;
 
     return inodeIndex;
 }
@@ -620,7 +649,7 @@ int FileSystem::moveToFolder() {
     return 0;
 }
 
-int FileSystem::moveToFolder(const std::string filepath) {
+int FileSystem::moveToFolder(std::string &filepath) {
     int inodeIndex = this->goToFolder(filepath);
     if (inodeIndex == -1)
         throw "Error: filepath do not exist.";
@@ -1145,10 +1174,10 @@ int FileSystem::appendFile(std::string to, std::string from) {
         fromBlockIndex = fromInode->getNextDataBlockIndex();
     }
 
-    fromContent = fromContent.substr(0, fromFileSize);
+    fromContent = fromContent.substr(0, (unsigned long)fromFileSize);
 
-    int toLastTmpBlockIndex = 0;
-    int toLastBlockIndex = toLastTmpBlockIndex = toInode->getFirstDataBlockIndex();
+    int toLastBlockIndex = toInode->getFirstDataBlockIndex();
+    int toLastTmpBlockIndex = toLastBlockIndex;
     toLastBlockIndex = toInode->getNextDataBlockIndex();
 
     int toBlockCounter = 1;
@@ -1270,16 +1299,16 @@ int FileSystem::changePermission(std::string permission, std::string filepath) {
     }
 
     delete[] permissions;
-    location->setProtection((const unsigned short) iPermission);
+    location->setProtection((const unsigned) iPermission);
 }
 
-void FileSystem::writeInode (INode inode, std::ofstream &outFile) {
-    outFile.write((char*)&inode, sizeof(INode*));
-}
-
-void FileSystem::saveFilesystem() {
+void FileSystem::saveFilesystem(std::string path) {
     std::ofstream outFile;
-    outFile.open("filesystem.fs", std::ios::out | std::ios::binary);
+    outFile.open(path, std::ios::out | std::ios::binary);
+
+    if(!outFile.is_open()) {
+        throw "Error: could not open filestream.";
+    }
 
     // Writing all bitmaps to inode and datablocks
     for(int i = 0; i < 250; i++) {
@@ -1312,12 +1341,16 @@ void FileSystem::saveFilesystem() {
     outFile.close();
 }
 
-void FileSystem::restoreFilesystem() {
+void FileSystem::restoreFilesystem(std::string path) {
+    std::ifstream inFile;
+    inFile.open(path, std::ios::in | std::ios::binary);
+
+    if(!inFile.is_open()) {
+        throw "Error: no save-file found.";
+    }
+
     // Resetting filesystem
     this->reset();
-
-    std::ifstream inFile;
-    inFile.open("filesystem.fs", std::ios::in | std::ios::binary);
 
     // Reading all bitmaps to inodes and datablock
     for(int i = 0; i < 250; i++) {
