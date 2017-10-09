@@ -97,10 +97,6 @@ INode::~INode() {
 
 }
 
-std::string INode::getFilename() const {
-	return this->filename;
-}
-
 void INode::setFilename(char filename[]) {
 	for(int i = 0; i < 15; i++) {
 		this->filename[i] = filename[i];
@@ -114,21 +110,6 @@ unsigned int INode::getProtection() const {
 
 void INode::setProtection(const unsigned int protection) {
 	this->protection = protection;
-}
-
-std::string INode::getCreator() const {
-	return this->creator;
-}
-
-std::string INode::getOwner() const {
-	return this->owner;
-}
-
-void INode::setOwner(char owner[]) {
-	for(int i = 0; i < 10; i++) {
-		this->owner[i] = owner[i];
-	}
-	//this->owner = owner;
 }
 
 std::string INode::getPWD() const {
@@ -146,14 +127,6 @@ unsigned int INode::getFilesize() const {
 
 void INode::setFilesize(const unsigned int filesize) {
 	this->filesize = filesize;
-}
-
-bool INode::isHidden() const {
-	return this->_isHidden;
-}
-
-void INode::setHidden(const bool isHidden) {
-	this->_isHidden = isHidden;
 }
 
 bool INode::isDir() const {
@@ -184,16 +157,6 @@ bool INode::setDataBlock (int blockIndex) {
 
 void INode::setSpecificDataBlock (int dataIndex, int blockIndex) {
 	this->data[dataIndex] = blockIndex;
-}
-
-unsigned int INode::getParentInodeIndex () const {
-    return this->parentInodeIndex;
-}
-
-void INode::setParentInodeIndex (unsigned int parentInodeIndex) {
-    if (parentInodeIndex < 0 || parentInodeIndex > 250)
-        throw std::out_of_range("Exception: Inodeindex out of range");
-    this->parentInodeIndex = parentInodeIndex;
 }
 
 unsigned int INode::getThisInodeIndex() const {

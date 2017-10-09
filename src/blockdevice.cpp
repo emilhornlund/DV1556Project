@@ -1,13 +1,13 @@
 #include "blockdevice.h"
 
-BlockDevice::BlockDevice(int nrOfBlocks) {
+BlockDevice::BlockDevice() {
     this->freePointer = 0;
 }
 
 BlockDevice::BlockDevice(const BlockDevice &other) {
     this->freePointer = other.freePointer;
 
-    for (int i = 0; i < 250; ++i)
+    for (int i = 0; i < MEM_SIZE; ++i)
         this->memBlocks[i] = other.memBlocks[i];
 }
 

@@ -9,11 +9,13 @@
 
 class BlockDevice
 {
+public:
+    const static int MEM_SIZE = 250;
 protected:
-    Block memBlocks[250];
+    Block memBlocks[MEM_SIZE];
     int freePointer;
 public:
-    BlockDevice(int nrOfBlocks);
+    BlockDevice();
     BlockDevice(const BlockDevice &other);
 
     virtual ~BlockDevice();

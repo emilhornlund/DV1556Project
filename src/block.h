@@ -7,8 +7,10 @@
 
 class Block
 {
+public:
+    const static int BLOCK_SIZE = 512;
 private:
-    char block[512];
+    char block[BLOCK_SIZE];
 
 public:
     /* Constructor */
@@ -23,7 +25,7 @@ public:
     char operator[] (int index) const;  // []-operator
     friend std::ostream& operator<<(std::ostream &os, const Block& blck)
     {
-        for (int i = 0; i < 512; ++i)
+        for (int i = 0; i < BLOCK_SIZE; ++i)
             os << blck.block[i];
         return os;
     }

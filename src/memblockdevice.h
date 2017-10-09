@@ -5,7 +5,7 @@
 class MemBlockDevice: public BlockDevice
 {
 public:
-    MemBlockDevice(int nrOfBlocks = 250);
+    MemBlockDevice();
     MemBlockDevice(const MemBlockDevice &other);
 
     ~MemBlockDevice();
