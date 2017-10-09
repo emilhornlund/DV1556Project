@@ -569,35 +569,28 @@ int FileSystem::createInode(unsigned int parentInodeIndex, std::string filename,
         this->bitmapINodes[inodeIndex] = true;
         this->bitmapData[dataIndex] = true;
 
-        char cFilename[15] = { '\0' };
-        char cOwner[10] = { '\0' };
-        char cCreator[10] = { '\0' };
-        char cPwd[512] = { '\0' };
+        char cFilename[15] = {'\0'};
+        char cOwner[10] = {'\0'};
+        char cCreator[10] = {'\0'};
+        char cPwd[512] = {'\0'};
 
-        for(int i = 0; i < 15 && filename[i] != '\0'; i++) {
+        for(unsigned int i = 0; i < filename.length(); i++)
             cFilename[i] = filename[i];
-        }
 
-        for(int i = 0; i < 10 && (owner[i] != '\0' || creator[i] != '\0'); i++) {
+        for(unsigned int i = 0; i < owner.length(); i++)
             cOwner[i] = owner[i];
+
+        for (unsigned int i = 0; i < creator.length(); i++)
             cCreator[i] = creator[i];
-        }
 
-        for(int i = 0; i < 512 && pwd[i] != '\0'; i++) {
+        for(unsigned int i = 0; i < pwd.length(); i++)
             cPwd[i] = pwd[i];
-        }
-
-        /*cFilename[filename.length()] = '\0';
-        cOwner[owner.length()] = '\0';
-        cCreator[creator.length()] = '\0';
-        cPwd[pwd.length()] = '\0';*/
 
         this->inodes[inodeIndex] = new INode(parentInodeIndex, inodeIndex, cFilename, protection, cCreator, cOwner, cPwd, tmpFileSize, isDir);
         this->inodes[inodeIndex]->setFilesize(0);
         this->inodes[inodeIndex]->setDataBlock(dataIndex);
 
         if (isDir) {
-
             char data[16] = {(char)inodeIndex, '.', '\0'};
             char data2[16] = {(char)parentInodeIndex, '.', '.', '\0'};
             char dataBlock[Block::BLOCK_SIZE];
@@ -757,9 +750,6 @@ int FileSystem::moveToFolder(std::string &filepath) {
 }
 
 std::string FileSystem::cat(std::string &filepath) {
-    std::string content;
-    char* actualData = NULL;
-
     std::string filename;
     INode* location = NULL;
     INode* final = NULL;
@@ -805,6 +795,9 @@ std::string FileSystem::cat(std::string &filepath) {
     if(filesize == 0)
         throw "File i empty";
 
+    std::string content;
+    content.reserve((unsigned long)filesize);
+
     int blockIndex = final->getFirstDataBlockIndex();
     content += this->_openData(blockIndex);
 
@@ -814,13 +807,13 @@ std::string FileSystem::cat(std::string &filepath) {
         blockIndex = final->getNextDataBlockIndex();
     }
 
-    actualData = new char[filesize];
-    for (int i = 0; i < filesize; i++) {
-        actualData[i] = content[i];
+    for (int i = 0; i < (filesize - 1); i++) {
+        if(content[i] == '\\' && content[i+1] == 'n') {
+            content.replace(i, 2, "\n");
+        }
     }
 
-    actualData[filesize] = '\0';
-    return actualData;
+    return content.c_str();
 }
 
 bool FileSystem::removeFile(std::string filepath) {
@@ -1176,7 +1169,7 @@ int FileSystem::appendFile(std::string to, std::string from) {
     unsigned int toFileSize = toInode->getFilesize();
 
     if ((fromFileSize + toFileSize) > INode::MAX_FILESIZE)
-        throw "Error: file's to big to fit inside.";
+        throw "Error: filesize to big.";
 
     int fromBlockIndex = fromInode->getFirstDataBlockIndex();
     std::string fromContent = this->_openData(fromBlockIndex);
@@ -1333,13 +1326,6 @@ void FileSystem::saveFilesystem(std::string path) {
     for(int i = 0; i < 250; i++) {
         if(this->bitmapINodes[i]) { // Finding used inode from bitmap
             outFile.write((char *) this->inodes[i], sizeof(INode));
-
-            //Write dataBlock index from inode
-            int nrOfBlockIndex = this->inodes[i]->getNrOfBlockIndex();
-            for(int n = 0; n < nrOfBlockIndex; n++) {
-                int blockIndex = this->inodes[i]->getSpecifikBlockIndex(n);
-                outFile.write((char *) &blockIndex, sizeof(int));
-            }
         }
     }
 
@@ -1377,14 +1363,6 @@ void FileSystem::restoreFilesystem(std::string path) {
             INode inode;
             inFile.read((char*)&inode, sizeof(INode));
             this->inodes[i] = new INode(inode);
-
-            // Reading dataBlock index to inode
-            int blockIndexes = this->inodes[i]->getNrOfBlockIndex();
-            for (int n = 0; n < blockIndexes; n++) {
-                int blockIndex;
-                inFile.read((char*)&blockIndex, sizeof(int));
-                this->inodes[i]->setSpecificDataBlock(n, blockIndex);
-            }
         }
     }
 

@@ -56,7 +56,7 @@ int main(void) {
 
     fileSystem.appendFile("a.txt", "b.txt");
     fileSystem.changePermission("4", "b");*/
-    fileSystem.restoreFilesystem("filesystem.fs");
+    //fileSystem.restoreFilesystem("filesystem.fs");
 
     do {
         currentDir = fileSystem.getPWD();
@@ -171,6 +171,7 @@ std::string help() {
     helpStr += "* mkdir  <directory>:               Creates a new directory called <directory>\n";
     helpStr += "* cd     <directory>:               Changes current working directory to <directory>\n";
     helpStr += "* pwd:                              Get current working directory\n";
+    helpStr += "* append  <source> <destination>:   Append source file to destination file\n";
     helpStr += "* chmod  <permission> <filepath>:   Changes permission on a file or folder\n";
     helpStr += "* help:                             Prints this help screen\n";
     return helpStr;
@@ -299,8 +300,8 @@ void cp(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
 
 void append(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
     if (nrOfCommands > 2) {
-        std::string fromFilepath = strArr[1];
-        std::string toFilepath = strArr[2];
+        std::string fromFilepath = strArr[2];
+        std::string toFilepath = strArr[1];
         try {
             fileSystem.appendFile(fromFilepath, toFilepath);
         } catch (const char *e) {

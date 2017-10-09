@@ -10,7 +10,7 @@ class Block
 public:
     const static int BLOCK_SIZE = 512;
 private:
-    char block[BLOCK_SIZE];
+    char block[BLOCK_SIZE] = {'\0'};
 
 public:
     /* Constructor */
