@@ -35,7 +35,7 @@ public:
 
 	void setFilename(char filename[]);
 	void setProtection(const unsigned int protection);
-	void setFilesize(const unsigned int filesize);
+	void setFilesize(const unsigned long filesize);
 	bool setDataBlock (int blockIndex);
 	void setSpecificDataBlock (int dataindex, int blockIndex);
 
@@ -45,8 +45,6 @@ public:
 	int 			getFirstDataBlockIndex();
 	int 			getNextDataBlockIndex();
 	unsigned int 	getThisInodeIndex() const;
-	int 			getNrOfBlockIndex () const;
-	int 			getSpecifikBlockIndex (int dataindex);
 
 	bool 			isDir() const;
 	std::string 	toString();

@@ -34,38 +34,18 @@ void restoreFilesystem(FileSystem &fileSystem, std::string *strArr, int nrOfComm
 int main(void) {
     FileSystem fileSystem;
 
-	std::string userCommand, commandArr[MAXCOMMANDS];
+	std::string userCommand, commandArr[MAXCOMMANDS] = {""};
 	std::string user = "user";    // Change this if you want another user to be displayed
 	std::string currentDir;    // current directory, used for output
 
     bool bRun = true;
 
-    /* TEST */
-    /*std::string garbage;
-    fileSystem.createFile("ab", user, garbage, true);
-    fileSystem.createFile("bb", user, garbage, true);
-    std::string fileContent = "FnKMB2eueh1c3jEytgraSHCsCqlSYKVRa8srQdIZqrB6LJNcVB9Az60zd6b9yMCKTeHK2AoHZtjaObE95L99Mpr8sSNsCMIuDu6YGIsQBVPqZoe9E0PK9NSdZuZo1pYdBHorxhEPanNdWWCJQqTROswtwYa6ybS52k346xXgoPSIDWuh37mIyg5ezoTx5LEuDT6sS4uBe3DRS0pIwQ6mYlYPxg4huyvsIWIGAtEeDu1lNrVB0ZQws6UK7LeOfl3rgvpUPgsHaR7ukrLT5i75E20130oovSJemwfT1x1DLvUhscj5HvUmeiW6VR6yjyIWOLtELmptivB3hySY9jrba4UbK5Na3dgewShCqii7r1x5Mjzj4LVawDB6J4M1Qahmvj4agI9ZgNElrOtk0QZhxFnJDfeUqMKzV94phBME4ct2X2XdGwQvUexVfIdmfwHMVcnWgXnejoBRuaFxvVIva1UvZRuZ5qW6WPqtM30XjOdle3wic5JbsNzGqjE7L2g9XSF3Lc7Mp7iKry43J27uCEvKZC4VHQbjmZoOYf0pLTJW7NilnuEhNlyYU6YWB5hgM2ewEXflWCZJc09tt4m5AEB0U3y3NOMw3un64r95THYGhxpuYXLpfdgVhHIoMIiWHefH6Bq1mFE0Ufim6OG525JI96ZHZarj48FpC8jOOTEdjGvSCIb9a3Fc7JfRMpmaEwd5DfQnEpHSCjQBZOepEGsIKDmobpFPAy0NZZmnxnKzskgRQCGuCtMJaTnzwrvNiPafqTS2a418SIKkfwyTVtRGyiFmeIElVrkiQroXbsznGlq0VCZLWn8hTXeAVDB30jdsBe57tmQ4QIJ9LjSkcCqBX1JvlLIuSFXuV9m2UIx31jnXqUJlWcoZ5LWI1qAzxjXZkG09TNWu8N2CoRWjNxUOI2RxIRwa6gEutP8wZYBCUybMvPzFkai1i2r68mu0zQoHSm3YeGfvtVjJtpRpduwlaZhkkNwEn4hATDYOltbqYt9zNCiyY2ULQD91iUkrLIyqzIFALnEkkyhiarlK0KqCnua9HmUeO7GoUrzTlL4foBm7RvZo943LYxxYp9KPooaqlyhWmUG1KHsQG0WVPlINXkatvcoGvpCH3cOApPm2WS9huzYAlVhoxpXC2zN7vGELKfWgM86q0Zkp3fdn1lLIMbB4hG18WawXGAwq0txOfBJIJcLvODfYk6xPbCdRxWF7a7lK7Vjf5xKlydsPckA526iEQYPa7hZHjLE8g9eAtZbyJn6DWH7nUFSMGNYzNbsP09StTCv1NxiQi80B";
-    fileSystem.createFile("b.txt", user, fileContent, false);
-
-
-
-    std::string contentA = "hejmittnamnärA";
-    std::string contentB = "sugen?";
-    fileSystem.createFile("a.txt", user, contentA, false);
-
-
-    fileSystem.appendFile("a.txt", "b.txt");
-    fileSystem.changePermission("4", "b");*/
-    //fileSystem.restoreFilesystem("filesystem.fs");
-
     do {
         currentDir = fileSystem.getPWD();
         std::cout << user << "@DV1492:" << currentDir << "$ ";
         getline(std::cin, userCommand);
-
         int nrOfCommands = parseCommandString(userCommand, commandArr);
         if (nrOfCommands > 0) {
-
             int cIndex = findCommand(commandArr[0]);
             switch(cIndex) {
 
@@ -117,11 +97,20 @@ int main(void) {
             case 15: //chmod
                 chmod(fileSystem, commandArr, nrOfCommands);
                 break;
-            default:
-                std::cout << "Unknown command: " << commandArr[0] << std::endl;
+            default: {
+                if (nrOfCommands == 3 && commandArr[1] == ">") {
+                    commandArr[1] = commandArr[0];
+                    append(fileSystem, commandArr, nrOfCommands);
+
+                } else {
+                    std::cout << "Unknown command: " << commandArr[0] << std::endl;
+                }
+            } break;
             }
+        } else {
+            std::cout << "Enter command - see help" << std::endl;
         }
-    } while (bRun == true);
+    } while (bRun);
 
     return 0;
 }
@@ -133,7 +122,7 @@ int parseCommandString(const std::string &userCommand, std::string strArr[]) {
         ssin >> strArr[counter];
         counter++;
     }
-    if (strArr[0] == "") {
+    if (userCommand.empty()) {
         counter = 0;
     }
     return counter;
@@ -167,11 +156,11 @@ std::string help() {
     helpStr += "* rm     <file>:                    Removes <file>\n";
     helpStr += "* cp     <source> <destination>:    Copy <source> to <destination>\n";
     helpStr += "* append <source> <destination>:    Appends contents of <source> to <destination>\n";
+    helpStr += "* <source> > <destination>:         Appends contents of <source> to <destination>\n";
     helpStr += "* mv     <old-file> <new-file>:     Renames <old-file> to <new-file>\n";
     helpStr += "* mkdir  <directory>:               Creates a new directory called <directory>\n";
     helpStr += "* cd     <directory>:               Changes current working directory to <directory>\n";
     helpStr += "* pwd:                              Get current working directory\n";
-    helpStr += "* append  <source> <destination>:   Append source file to destination file\n";
     helpStr += "* chmod  <permission> <filepath>:   Changes permission on a file or folder\n";
     helpStr += "* help:                             Prints this help screen\n";
     return helpStr;
@@ -180,15 +169,17 @@ std::string help() {
 /* Insert code for your shell functions and call them from the switch-case */
 void ls(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
     if (nrOfCommands > 1) {
+        std::string filepath;
         try {
-            std::string filepath = strArr[1];
+            filepath = strArr[1];
             std::cout << fileSystem.listDir(filepath) << std::endl;
         } catch (const char* e) {
-            std::cout << e << std::endl;
+            std::cout << "ls: " << filepath << ": " << e << std::endl;
         }
 
     } else {
-        std::cout << fileSystem.listDir() << std::endl;
+        std::string empty = "";
+        std::cout << fileSystem.listDir(empty) << std::endl;
     }
 }
 
@@ -199,7 +190,7 @@ void mkdir(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, std::s
         try {
             fileSystem.createFile(filepath, username, garbage, true);
         } catch (const char* e) {
-            std::cout << e << std::endl;
+            std::cout << "mkdir: " << filepath << ": " << e << std::endl;
         }
     } else {
         std::cout << "Usage: mkdir <folder/folderpath>" << std::endl;
@@ -209,11 +200,10 @@ void mkdir(FileSystem &fileSystem, std::string *strArr, int nrOfCommands, std::s
 void cd(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
     if (nrOfCommands > 1) {
         std::string filepath = strArr[1];
-
         try {
             fileSystem.moveToFolder(filepath);
         } catch (const char* e) {
-            std::cout << e << std::endl;
+            std::cout << "cd: " << filepath << ": " << e << std::endl;
         }
     } else {
         try {
@@ -231,7 +221,7 @@ void cat(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
             std::string content = fileSystem.cat(filepath);
             std::cout << content << std::endl;
         } catch (const char* e) {
-            std::cout << e << std::endl;
+            std::cout << "cat: " << filepath << ": " << e << std::endl;
         }
     } else {
         std::cout << "Usage: cat <filepath>" << std::endl;
@@ -263,7 +253,7 @@ void rm(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         try {
             fileSystem.removeFile(filepath);
         } catch (const char *e) {
-            std::cout << e << std::endl;
+            std::cout << "rm: " << filepath << ": " << e << std::endl;
         }
     } else {
         std::cout << "Usage: rm <folder/file -path>" << std::endl;
@@ -277,7 +267,7 @@ void mv(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         try {
             fileSystem.move(fromFilepath, toFilepath);
         } catch (const char *e) {
-            std::cout << e << std::endl;
+            std::cout << "mv: " << fromFilepath << " to " << toFilepath << ": " << e << std::endl;
         }
     } else {
         std::cout << "Usage: mv <filepath> <filepath>" << std::endl;
@@ -291,7 +281,7 @@ void cp(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         try {
             fileSystem.copy(fromFilepath, toFilepath);
         } catch (const char *e) {
-            std::cout << e << std::endl;
+            std::cout << "cp: " << fromFilepath << " to " << toFilepath << ": " << e << std::endl;
         }
     } else {
         std::cout << "Usage: cp <filepath> <filepath>" << std::endl;
@@ -305,10 +295,10 @@ void append(FileSystem &fileSystem, std::string *strArr, int nrOfCommands) {
         try {
             fileSystem.appendFile(fromFilepath, toFilepath);
         } catch (const char *e) {
-            std::cout << e << std::endl;
+            std::cout << "append: " << fromFilepath << " to " << toFilepath << ": " << e << std::endl;
         }
     } else {
-        std::cout << "Usage: append <filepath> <filepath>" << std::endl;
+        std::cout << "Usage: append <filepath> <filepath> or <filepath> > <filepath>" << std::endl;
     }
 }
 

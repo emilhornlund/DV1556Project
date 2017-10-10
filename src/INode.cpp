@@ -114,7 +114,7 @@ unsigned int INode::getFilesize() const {
 	return this->filesize;
 }
 
-void INode::setFilesize(const unsigned int filesize) {
+void INode::setFilesize(const unsigned long filesize) {
 	this->filesize = filesize;
 }
 
@@ -188,8 +188,9 @@ std::string INode::toString() {
 
 	retStr += "\t\t";
 
-	if(!this->isDir())
-			retStr += std::to_string(this->filesize) + "\t";
+	if(!this->isDir()) {
+		retStr += std::to_string(this->filesize) + "\t";
+	}
 	else
 		retStr += "-\t";
 
@@ -237,7 +238,3 @@ INode& INode::operator =(const INode &other) {
 }
 
 void INode::addBlockIndex () { this->nrOfBlockIndex++; }
-int INode::getNrOfBlockIndex () const { return this->nrOfBlockIndex; }
-int INode::getSpecifikBlockIndex (int dataIndex) {
-	return this->data[dataIndex];
-}
