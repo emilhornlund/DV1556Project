@@ -99,6 +99,7 @@ int FileSystem::_findDataBlockByFileSize(const unsigned long fileSize, int *&fre
         delete[] freeData;
         throw "Error: no free spaces on harddrive.";
     }
+
     return nrOfBlocks;
 }
 
@@ -148,7 +149,7 @@ int FileSystem::_findInodeIndexByName(std::string *filenames, int size, std::str
 }
 
 INode * FileSystem::_findParentINode(std::string &filePath, std::string &fileName) {
-    bool isRelativePath = this->_splitFilepath(fileName, filePath);
+    this->_splitFilepath(fileName, filePath);
     if (fileName.length() > 15) {
         throw "Error: fileName too long";
     }
@@ -344,11 +345,6 @@ int FileSystem::_goToFolder(std::string &filePath) {
 }
 
 int FileSystem::_removeFolderEntry(INode *inode, std::string filename) {
-
-    //OBS!!!!!! inode innehåller parent!!!
-
-    //Filename innehåller filnamnet
-
     int retVal = -1;
 
 
@@ -464,8 +460,6 @@ std::string FileSystem::getPWD() const {
 }
 
 void FileSystem::createFile(std::string filePath, std::string username, std::string &content, const bool isDir) {
-    //int inodeIndex = -1;
-
     std::string fileName;
     INode* parentINode = this->_findParentINode(filePath, fileName);
 
@@ -504,7 +498,12 @@ void FileSystem::createFile(std::string filePath, std::string username, std::str
             nrOfBlocks = this->_findDataBlockByFileSize(fileSize, freeData);
         }
 
-        INode* newINode = this->_createINode(parentINode->getThisInodeIndex(), fileName, 7, username, username, newPWD, isDir, false);
+        INode *newINode = NULL;
+        try {
+            newINode = this->_createINode(parentINode->getThisInodeIndex(), fileName, 7, username, username, newPWD, isDir, false);
+        } catch (const char* e) {
+            throw e;
+        }
 
         if (isDir) {
             int dataBlockIndex = this->_findNextFreeData();
@@ -528,13 +527,14 @@ void FileSystem::createFile(std::string filePath, std::string username, std::str
 
             newINode->addBlockIndex();
             this->_writeData(dataBlockIndex, cDataBlock);
+
         } else {
-            for(unsigned int i = 0; i < nrOfBlocks; i++)
+            for(int i = 0; i < nrOfBlocks; i++)
                 this->bitmapData[freeData[i]] = true;
 
             newINode->setFilesize(fileSize);
 
-            for (unsigned int i = 0; i < nrOfBlocks; i++)
+            for (int i = 0; i < nrOfBlocks; i++)
                 newINode->setSpecificDataBlock(i, freeData[i]);
 
             delete[] freeData;
@@ -631,13 +631,10 @@ INode *& FileSystem::_createINode(unsigned int parentInodeIndex, std::string fil
     }
 
     //Place inode entry in parent directory
-
-
     if (this->currentINode != NULL) {
         INode *parent = this->inodes[parentInodeIndex];
         int tmpFileSize = parent->getFilesize();
         if (tmpFileSize + 16 <= Block::BLOCK_SIZE) {
-            //std::string tmpDataBlock = this->mMemblockDevice.readBlock(parent->getFirstDataBlockIndex()).toString();
 
             std::string dataBlock = this->_openData(parent->getFirstDataBlockIndex());
 
@@ -648,15 +645,6 @@ INode *& FileSystem::_createINode(unsigned int parentInodeIndex, std::string fil
             for (; i < filename.length(); i++) {
                 data[(i + 1)] = filename[i];
             }
-
-            /*
-            if(i < 15) {
-                data[++i] = '\0';
-            }
-            */
-
-            //char* tmpData = new char[tmpDataBlock.size()];
-            //std::copy(tmpDataBlock.begin(), tmpDataBlock.end(), tmpData);
 
             char cDataBlock[Block::BLOCK_SIZE];
             for (int i = 0; i < Block::BLOCK_SIZE; i++) {
@@ -673,14 +661,6 @@ INode *& FileSystem::_createINode(unsigned int parentInodeIndex, std::string fil
     }
 
     //Create INode
-
-
-    /*
-    int tmpFileSize = 0;
-
-    this->bitmapData[dataIndex] = true;
-    */
-
     char cFilename[15] = {'\0'};
     char cOwner[10] = {'\0'};
     char cCreator[10] = {'\0'};
@@ -995,16 +975,24 @@ void FileSystem::copy (std::string fromFilePath, std::string toFilePath) {
             exist = false;
     }
 
-    if(freeInode == -1 || !exist)
+    if(freeInode == -1 || !exist) {
+        delete[] freeData;
         throw "Error: no free spaces on harddrive.";
+    }
 
-    int* toInodesIndexes;
-    std::string* toDirectories;
-    int toNrOfEntries = this->_getAllDirectoriesFromDataBlock(toInode, toInodesIndexes, toDirectories);
-    int toInodeIndex = this->_findInodeIndexByName(toDirectories, toNrOfEntries, toFileName);
+    int toInodeIndex = 0;
+    try {
+        int *toInodesIndexes;
+        std::string *toDirectories;
+        int toNrOfEntries = this->_getAllDirectoriesFromDataBlock(toInode, toInodesIndexes, toDirectories);
+        toInodeIndex = this->_findInodeIndexByName(toDirectories, toNrOfEntries, toFileName);
 
-    delete[] toInodesIndexes;
-    delete[] toDirectories;
+        delete[] toInodesIndexes;
+        delete[] toDirectories;
+    } catch (const char* e) {
+        delete[] freeData;
+        throw e;
+    }
 
     if (toInodeIndex != -1)
         throw "Error: filename exists.";
@@ -1026,6 +1014,8 @@ void FileSystem::copy (std::string fromFilePath, std::string toFilePath) {
 
     for (int i = 0; i < nrOfBlocksNeeded; i++)
         this->inodes[freeInode]->setSpecificDataBlock(i, freeData[i]);
+
+    delete[] freeData;
 
     // Copy all dataBlocks
     int test = fromInode->getFirstDataBlockIndex();
@@ -1062,8 +1052,6 @@ void FileSystem::copy (std::string fromFilePath, std::string toFilePath) {
     this->appendData(cToDataBlock, toInode->getFilesize(), cFilename, 16);
     this->_writeData(toInode->getFirstDataBlockIndex(), cToDataBlock);
     toInode->setFilesize(toInode->getFilesize()+16);
-
-    delete[] freeData;
 }
 
 int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
@@ -1101,6 +1089,10 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
     inodeIndex = this->_findInodeIndexByName(directories, nrOfDirs, toFileName);
 
     toInode = this->inodes[inodeIndexes[inodeIndex]];
+
+    if(fromInode == toInode) {
+        throw "use different files";
+    }
 
     delete[] inodeIndexes;
     delete[] directories;
@@ -1182,6 +1174,8 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
     for (int i = 0; i < nrOfBlocksNeeded; i++)
         toInode->setSpecificDataBlock(tmpBlockIndex++, freeDataBlocks[i]);
 
+    delete[] freeDataBlocks;
+
     int newBlockIndex = toLastTmpBlockIndex + 1;
     int startFrom = byteRemainingTo;
     while (newBlockIndex != -1) {
@@ -1197,7 +1191,7 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
 
     toInode->setFilesize(toInode->getFilesize() + fromInode->getFilesize());
 
-    delete[] freeDataBlocks;
+
 
     return 0;
 }
@@ -1317,6 +1311,8 @@ void FileSystem::restoreFilesystem(std::string path) {
             this->mMemblockDevice.writeBlock(i, block);
         }
     }
+
+    inFile.close();
 
     this->currentINode = this->inodes[0];
 }
