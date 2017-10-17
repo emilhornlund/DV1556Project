@@ -38,7 +38,7 @@ private:
     int         _removeFolderEntry(INode *inode, std::string filename);
     bool        _splitFilepath(std::string &filename, std::string &path);
     int         _fileExists(INode *inode, std::string filename);
-    void        _checkPermissions(int permission, bool *&permissions);
+    void        _checkPermissions(int permission, bool permissions[]);
 
     void        _writeData(int dataBlock, char *data);
 public:
