@@ -1,6 +1,7 @@
 #include "filesystem.h"
 #include <iostream>
 #include <fstream>
+#include <string.h>
 
 
 
@@ -1419,7 +1420,7 @@ void FileSystem::restoreFilesystem(std::string path) {
 
     inFile.read((char *) &this->id, sizeof(this->id));
 
-    if (std::strncmp(this->id, "fs13", 4) != 0) {
+    if (strncmp(this->id, "fs13", 4) != 0) {
         inFile.close();
         this->_init();
         throw "Corrupted file";
