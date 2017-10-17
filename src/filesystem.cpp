@@ -1186,17 +1186,15 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
     bool permissions[3] = {false};
     this->_checkPermissions(fromInode->getProtection(), permissions);
 
-    if(!permissions[0]) {
-        delete[] inodeIndexes;
-        inodeIndexes = NULL;
-        delete[] directories;
-        directories = NULL;
+    delete[] inodeIndexes;
+    inodeIndexes = NULL;
+    delete[] directories;
+    directories = NULL;
 
+    if(!permissions[0]) {
         throw "Error: permission denied.";
     }
 
-    inodeIndexes = NULL;
-    directories = NULL;
     nrOfDirs = this->_getAllDirectoriesFromDataBlock(toInode, inodeIndexes, directories);
     inodeIndex = this->_findInodeIndexByName(directories, nrOfDirs, toFileName);
 
@@ -1212,9 +1210,11 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
         directories = NULL;
     }
 
+    /*
     if (fromInode == toInode) {
         throw "use different files";
     }
+    */
     this->_checkPermissions(toInode->getProtection(), permissions);
 
     if(!permissions[1])
@@ -1295,6 +1295,7 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
         toInode->setSpecificDataBlock(tmpBlockIndex++, freeDataBlocks[i]);
 
     delete[] freeDataBlocks;
+    freeDataBlocks = NULL;
 
     int newBlockIndex = toLastTmpBlockIndex + 1;
     int startFrom = byteRemainingTo;
@@ -1374,11 +1375,13 @@ void FileSystem::changePermission(std::string permission, std::string filepath) 
 
 void FileSystem::saveFilesystem(std::string path) {
     std::ofstream outFile;
-    outFile.open(path, std::ios::out | std::ios::binary);
+    outFile.open((path + ".fs"), std::ios::out | std::ios::binary);
 
     if(!outFile.is_open()) {
         throw "Error: could not open filestream.";
     }
+
+    outFile.write((const char *) &this->id, sizeof(this->id));
 
     // Writing all bitmaps to inode and datablocks
     for(int i = 0; i < 250; i++) {
@@ -1406,14 +1409,21 @@ void FileSystem::saveFilesystem(std::string path) {
 
 void FileSystem::restoreFilesystem(std::string path) {
     std::ifstream inFile;
-    inFile.open(path, std::ios::in | std::ios::binary);
-
+    inFile.open((path + ".fs"), std::ios::in | std::ios::binary);
     if(!inFile.is_open()) {
         throw "Error: no save-file found.";
     }
 
     // Resetting filesystem
     this->_reset();
+
+    inFile.read((char *) &this->id, sizeof(this->id));
+
+    if (std::strncmp(this->id, "fs13", 4) != 0) {
+        inFile.close();
+        this->_init();
+        throw "Corrupted file";
+    }
 
     // Reading all bitmaps to inodes and datablock
     for(int i = 0; i < 250; i++) {

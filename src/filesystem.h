@@ -15,6 +15,8 @@ private:
     bool            bitmapINodes[MemBlockDevice::MEM_SIZE];
     bool            bitmapData[MemBlockDevice::MEM_SIZE];
 
+    char           id[4] = {'f', 's', '1', '3'};
+
     void _resetINodes();
     void _resetBitmapINodes();
     void _resetBitmapData();
