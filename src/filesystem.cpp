@@ -938,17 +938,19 @@ void FileSystem::move(std::string fromFilePath, std::string toFilePath) {
 
     // Removed fromFilePath entry and rename
     int deletedInode = this->_removeFolderEntry(fromInode, fromFileName);
-    if (deletedInode == -1) {
-        throw "No such file or directory";
-    }
-    else if (deletedInode == -2) {
-        throw "Directory not empty";
-    }
-    else if (deletedInode == -3) {
-        throw "Permission denied";
-    }
-    else {
-        throw "Unknown";
+    if (deletedInode < 0) {
+        if (deletedInode == -1) {
+            throw "No such file or directory";
+        }
+        else if (deletedInode == -2) {
+            throw "Directory not empty";
+        }
+        else if (deletedInode == -3) {
+            throw "Permission denied";
+        }
+        else {
+            throw "Unknown";
+        }
     }
 
     char cToFilename[15];
@@ -1073,8 +1075,12 @@ void FileSystem::copy (std::string fromFilePath, std::string toFilePath) {
         throw e;
     }
 
-    if (toInodeIndex != -1)
+    if (toInodeIndex != -1) {
+        delete[] freeData;
+        freeData = NULL;
+
         throw "Error: filename exists.";
+    }
 
     // No errors - set bitmap toFilePath taken
     this->bitmapINodes[freeInode] = true;
