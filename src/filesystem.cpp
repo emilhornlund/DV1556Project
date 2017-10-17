@@ -76,12 +76,12 @@ int FileSystem::_findNextFreeData() {
 }
 
 int FileSystem::_findDataBlockByFileSize(const unsigned long fileSize, int *&freeData) {
-    unsigned int nrOfBlocks = fileSize / Block::BLOCK_SIZE;
+    unsigned int nrOfBlocks = (unsigned int)fileSize / Block::BLOCK_SIZE;
     if (nrOfBlocks*Block::BLOCK_SIZE < fileSize || nrOfBlocks == 0)
         nrOfBlocks++;
 
     if (nrOfBlocks > INode::DATA_ENTRIES)
-        throw "Error: data to large";
+        return -1;
 
     freeData = new int[nrOfBlocks];
 
@@ -94,7 +94,7 @@ int FileSystem::_findDataBlockByFileSize(const unsigned long fileSize, int *&fre
 
     if(!exist) {
         delete[] freeData;
-        throw "Error: no free spaces on harddrive.";
+        return -1;
     }
 
     return nrOfBlocks;
@@ -145,22 +145,20 @@ int FileSystem::_findInodeIndexByName(std::string *filenames, int size, std::str
     else return -1;
 }
 
-INode * FileSystem::_findParentINode(std::string &filePath, std::string &fileName) {
+int FileSystem::_findParentINode(std::string &filePath, std::string &fileName) {
     this->_splitFilepath(fileName, filePath);
+
     if (fileName.length() > 15) {
-        throw "Error: fileName too long";
+        return -1;
     }
-    INode* inode;
+
+    int inodeIndex = -1;
     if (filePath.empty()) {
-        inode = this->currentINode;
+        inodeIndex = this->currentINode->getThisInodeIndex();
     } else {
-        int inodeIndex = _goToFolder(filePath);
-        if (inodeIndex == -1) {
-            throw "Error: invalid filePath";
-        }
-        inode = this->inodes[inodeIndex];
+        inodeIndex = _goToFolder(filePath);
     }
-    return inode;
+    return inodeIndex;
 }
 
 void FileSystem::_resetINodes() {
@@ -273,8 +271,8 @@ int FileSystem::_getAllDirectoriesFromDataBlock(INode *&inode, int *&inodes, std
 }
 
 std::string FileSystem::_openData(int blockIndex) {
-    if(blockIndex < 0 || blockIndex >= Block::BLOCK_SIZE) {
-        throw std::out_of_range("Exception: out of range");
+    if (blockIndex < 0 || blockIndex >= Block::BLOCK_SIZE) {
+        return "";
     }
     return this->mMemblockDevice.readBlock(blockIndex).toString();
 }
@@ -318,18 +316,17 @@ int FileSystem::_goToFolder(std::string &filePath) {
                 this->_checkPermissions(this->inodes[inodeIndex]->getProtection(), permissions);
 
                 if (!permissions[0])
-                    throw "Error: permission denied.";
+                    return -2;
 
                 startFromInode = this->inodes[inodeIndex];
                 if (!startFromInode->isDir()) {
-                    throw "Not a directory";
+                    return -1;
                 }
             } else {
                 inodeIndex = -1;
                 break;
             }
         }
-
     }
 
     if(startFromInode->getThisInodeIndex() == 0 && inodeIndex == -2)
@@ -340,7 +337,6 @@ int FileSystem::_goToFolder(std::string &filePath) {
 
 int FileSystem::_removeFolderEntry(INode *inode, std::string filename) {
     int retVal = -1;
-
 
     int *inodeIndexes;
     std::string *directories;
@@ -353,10 +349,10 @@ int FileSystem::_removeFolderEntry(INode *inode, std::string filename) {
         bool permissions[3] = {false};
         this->_checkPermissions(this->inodes[inodeIndex]->getProtection(), permissions);
 
-        if(!permissions[1]) {
+        if (!permissions[1]) {
             delete[] inodeIndexes;
             delete[] directories;
-            throw "Error: permission denied.";
+            return -3;
         }
 
         bool okToDelete = true;
@@ -453,7 +449,14 @@ std::string FileSystem::getPWD() const {
 
 void FileSystem::createFile(std::string filePath, std::string username, std::string &content, const bool isDir) {
     std::string fileName;
-    INode* parentINode = this->_findParentINode(filePath, fileName);
+    int inodeIndex = this->_findParentINode(filePath, fileName);
+    if (inodeIndex == -1) {
+        throw "Error: invalid filepath";
+    }
+    if (inodeIndex == -2) {
+        throw "Error: permission denied.";
+    }
+    INode* parentINode = this->inodes[inodeIndex];
 
     if (fileName.length() < 1 || fileName.length() > 15) {
         throw "Error: filename too long";
@@ -497,10 +500,15 @@ void FileSystem::createFile(std::string filePath, std::string username, std::str
             nrOfBlocks = this->_findDataBlockByFileSize(fileSize, freeData);
         }
 
+        if (nrOfBlocks == -1) {
+            delete[] freeData;
+            freeData = NULL;
+            throw "Error: no free space";
+        }
+
         if (newPWD.length() > Block::BLOCK_SIZE) {
             delete[] freeData;
             freeData = NULL;
-
             throw "Error: filepath is too long.";
         }
 
@@ -706,6 +714,9 @@ std::string FileSystem::listDir(std::string &filePath) {
         if (inodeIndex == -1) {
             throw "No such file or directory";
         }
+        if (inodeIndex == -2) {
+            throw "Permission denied";
+        }
         location = this->inodes[inodeIndex];
     }
 
@@ -752,19 +763,29 @@ int FileSystem::moveToFolder(std::string &filepath) {
     if (inodeIndex == -1) {
         throw "No such file or directory";
     }
+    if (inodeIndex == -2) {
+        throw "Permission denied";
+    }
     this->currentINode = this->inodes[inodeIndex];
     return inodeIndex;
 }
 
 std::string FileSystem::cat(std::string &filePath) {
     std::string fileName;
-    INode* parentINode = this->_findParentINode(filePath, fileName);
+    int inodeIndex = this->_findParentINode(filePath, fileName);
+    if (inodeIndex == -1) {
+        throw "Error: invalid filepath";
+    }
+    if (inodeIndex == -2) {
+        throw "Error: permission denied.";
+    }
+    INode* parentINode = this->inodes[inodeIndex];
 
     int* inodesIndexes;
     std::string* directories;
     int nrOfDirectories = this->_getAllDirectoriesFromDataBlock(parentINode, inodesIndexes, directories);
 
-    int inodeIndex = this->_findInodeIndexByName(directories, nrOfDirectories, fileName);
+    inodeIndex = this->_findInodeIndexByName(directories, nrOfDirectories, fileName);
     if(inodeIndex == -1) {
         delete[] inodesIndexes;
         delete[] directories;
@@ -814,7 +835,21 @@ bool FileSystem::removeFile(std::string filePath) {
         throw "No such file or directory";
     } else {
         std::string fileName;
-        INode* parentINode = this->_findParentINode(filePath, fileName);
+
+        int inodeIndex = this->_findParentINode(filePath, fileName);
+        if (inodeIndex < 0) {
+            if (inodeIndex == -1) {
+                throw "Error: invalid filepath";
+            }
+            else if (inodeIndex == -2) {
+                throw "Error: permission denied.";
+            } else {
+                throw "Error: Unknown";
+            }
+        }
+
+        INode* parentINode = this->inodes[inodeIndex];
+
         int deletedInode = this->_removeFolderEntry(parentINode, fileName);
 
         if (deletedInode >= 0) {
@@ -823,11 +858,17 @@ bool FileSystem::removeFile(std::string filePath) {
             this->inodes[deletedInode] = NULL;
             didSucceed = true;
         }
+        else if (deletedInode == -1) {
+            throw "No such file or directory";
+        }
         else if (deletedInode == -2) {
             throw "Directory not empty";
         }
+        else if (deletedInode == -3) {
+            throw "Permission denied";
+        }
         else {
-            throw "No such file or directory";
+            throw "Unknown";
         }
     }
     return didSucceed;
@@ -837,8 +878,31 @@ void FileSystem::move(std::string fromFilePath, std::string toFilePath) {
     std::string fromFileName;
     std::string toFileName;
 
-    INode* fromInode = _findParentINode(fromFilePath, fromFileName);
-    INode* toInode = _findParentINode(toFilePath, toFileName);
+    int fromInodeIndex = this->_findParentINode(fromFilePath, fromFileName);
+    if (fromInodeIndex < 0) {
+        if (fromInodeIndex == -1) {
+            throw "Error: invalid filepath";
+        }
+        else if (fromInodeIndex == -2) {
+            throw "Error: permission denied.";
+        } else {
+            throw "Error: Unknown";
+        }
+    }
+    INode* fromInode = this->inodes[fromInodeIndex];
+
+    int toInodeIndex = this->_findParentINode(toFilePath, toFileName);
+    if (toInodeIndex < 0) {
+        if (toInodeIndex == -1) {
+            throw "Error: invalid filepath";
+        }
+        else if (toInodeIndex == -2) {
+            throw "Error: permission denied.";
+        } else {
+            throw "Error: Unknown";
+        }
+    }
+    INode* toInode = this->inodes[toInodeIndex];
 
     int inodeIndex = this->_fileExists(toInode, toFileName);
     if (inodeIndex != -1)
@@ -875,10 +939,16 @@ void FileSystem::move(std::string fromFilePath, std::string toFilePath) {
     // Removed fromFilePath entry and rename
     int deletedInode = this->_removeFolderEntry(fromInode, fromFileName);
     if (deletedInode == -1) {
-        throw "Invalid filepath";
+        throw "No such file or directory";
     }
-    if (deletedInode == -2) {
+    else if (deletedInode == -2) {
         throw "Directory not empty";
+    }
+    else if (deletedInode == -3) {
+        throw "Permission denied";
+    }
+    else {
+        throw "Unknown";
     }
 
     char cToFilename[15];
@@ -908,8 +978,31 @@ void FileSystem::copy (std::string fromFilePath, std::string toFilePath) {
     std::string fromFileName;
     std::string toFileName;
 
-    INode* fromInode = _findParentINode(fromFilePath, fromFileName);
-    INode* toInode = _findParentINode(toFilePath, toFileName);
+    int fromInodeIndex = this->_findParentINode(fromFilePath, fromFileName);
+    if (fromInodeIndex < 0) {
+        if (fromInodeIndex == -1) {
+            throw "Error: invalid filepath";
+        }
+        else if (fromInodeIndex == -2) {
+            throw "Error: permission denied.";
+        } else {
+            throw "Error: Unknown";
+        }
+    }
+    INode* fromInode = this->inodes[fromInodeIndex];
+
+    int toInodeIndex = this->_findParentINode(toFilePath, toFileName);
+    if (toInodeIndex < 0) {
+        if (toInodeIndex == -1) {
+            throw "Error: invalid filepath";
+        }
+        else if (toInodeIndex == -2) {
+            throw "Error: permission denied.";
+        } else {
+            throw "Error: Unknown";
+        }
+    }
+    INode* toInode = this->inodes[toInodeIndex];
 
     int* inodeIndexes;
     std::string* directories;
@@ -966,7 +1059,7 @@ void FileSystem::copy (std::string fromFilePath, std::string toFilePath) {
         throw "Error: no free spaces on harddrive.";
     }
 
-    int toInodeIndex = 0;
+    toInodeIndex = 0;
     try {
         int *toInodesIndexes;
         std::string *toDirectories;
@@ -1044,11 +1137,34 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
     std::string fromFileName;
     std::string toFileName;
 
-    INode* fromInode = _findParentINode(fromFilePath, fromFileName);
-    INode* toInode = _findParentINode(toFilePath, toFileName);
+    int fromINodeIndex = this->_findParentINode(fromFilePath, fromFileName);
+    if (fromINodeIndex < 0) {
+        if (fromINodeIndex == -1) {
+            throw "Error: invalid filepath";
+        }
+        else if (fromINodeIndex == -2) {
+            throw "Error: permission denied.";
+        } else {
+            throw "Error: Unknown";
+        }
+    }
+    INode* fromInode = this->inodes[fromINodeIndex];
 
-    int fromINodeIndex = this->_fileExists(fromInode, fromFileName);
-    int toINodeIndex = this->_fileExists(toInode, toFileName);
+    int toINodeIndex = this->_findParentINode(toFilePath, toFileName);
+    if (toINodeIndex < 0) {
+        if (toINodeIndex == -1) {
+            throw "Error: invalid filepath";
+        }
+        else if (toINodeIndex == -2) {
+            throw "Error: permission denied.";
+        } else {
+            throw "Error: Unknown";
+        }
+    }
+    INode* toInode = this->inodes[toINodeIndex];
+
+    fromINodeIndex = this->_fileExists(fromInode, fromFileName);
+    toINodeIndex = this->_fileExists(toInode, toFileName);
 
     if (fromINodeIndex == -1 || toINodeIndex == -1) {
         throw "Error file does'nt exists.";
@@ -1197,7 +1313,19 @@ void FileSystem::changePermission(std::string permission, std::string filepath) 
         throw "Error: invalid permission";
 
     std::string filename;
-    INode* parentINode = this->_findParentINode(filepath, filename);
+
+    int iNodeIndex = this->_findParentINode(filepath, filename);
+    if (iNodeIndex < 0) {
+        if (iNodeIndex == -1) {
+            throw "Error: invalid filepath";
+        }
+        else if (iNodeIndex == -2) {
+            throw "Error: permission denied.";
+        } else {
+            throw "Error: Unknown";
+        }
+    }
+    INode* parentINode = this->inodes[iNodeIndex];
 
     int* inodeIndexes;
     std::string* directories;

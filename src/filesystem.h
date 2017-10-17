@@ -29,7 +29,7 @@ private:
     int         _findDataBlockByFileSize(const unsigned long fileSize, int *&freeData);
     int         _findInodeByName(int *inodeIndexes, std::string *filenames, int size, std::string searchFilename);
     int         _findInodeIndexByName(std::string *filenames, int size, std::string searchFilename);
-    INode*      _findParentINode(std::string &filePath, std::string &fileName);
+    int _findParentINode(std::string &filePath, std::string &fileName);
     int         _getAllDirectoriesFromDataBlock(INode *&inode, int *&inodes, std::string *&directories);
     std::string _openData(int blockIndex);
     int         _appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize);
