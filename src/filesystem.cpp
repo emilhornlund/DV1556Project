@@ -1,9 +1,6 @@
 #include "filesystem.h"
-#include <iostream>
 #include <fstream>
 #include <string.h>
-
-
 
 /* CONSTRUCTORS ETC */
 FileSystem::FileSystem() {
@@ -14,8 +11,6 @@ FileSystem::FileSystem() {
 FileSystem::~FileSystem() {
     this->_reset();
 }
-
-
 
 /* PRIVATE FUNCTIONS */
 void FileSystem::_init() {
@@ -421,22 +416,6 @@ bool FileSystem::_splitFilepath(std::string &filename, std::string &path) {
 
     if (path[0] == '/')
         isRelativePath = false;
-
-
-
-    /*
-    int n = i;
-    if(found)
-        n = i+2;
-    filename = path.substr((n), path.length());
-
-    if (!filename.empty()) {
-        if (found)
-            path.erase(i + 1, path.length());
-        else
-
-    }
-    */
 
     return isRelativePath;
 }
@@ -1211,11 +1190,6 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
         directories = NULL;
     }
 
-    /*
-    if (fromInode == toInode) {
-        throw "use different files";
-    }
-    */
     this->_checkPermissions(toInode->getProtection(), permissions);
 
     if(!permissions[1])

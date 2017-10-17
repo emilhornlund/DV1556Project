@@ -321,6 +321,7 @@ void saveFilesystem(FileSystem &fileSystem, std::string *strArr, int nrOfCommand
         std::string path = strArr[1];
         try {
             fileSystem.saveFilesystem(path);
+            std::cout << "Success: " << path << ".fs" << std::endl;
         } catch (const char* e) {
             std::cout << e << std::endl;
         }
