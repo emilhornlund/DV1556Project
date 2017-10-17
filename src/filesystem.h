@@ -21,8 +21,8 @@ private:
     void _reset();
     void _init();
 
-    INode *& _createINode(unsigned int parentInodeIndex, std::string filename, unsigned int protection,
-                          std::string creator, std::string owner, std::string pwd, bool isDir, bool isHidden);
+    int _createINode(unsigned int parentInodeIndex, std::string filename, unsigned int protection,
+                     std::string creator, std::string owner, std::string pwd, bool isDir, bool isHidden);
 
     int         _findNextFreeInode();
     int         _findNextFreeData();

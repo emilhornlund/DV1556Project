@@ -27,33 +27,30 @@ void FileSystem::_init() {
     this->bitmapDataIndex = 0;
     this->bitmapInodeIndex = 0;
 
-
-    INode* rootINode = this->_createINode(0, "/", 7, "root", "root", "/", true, false);
-
+    int inodeIndex = this->_createINode(0, "/", 7, "root", "root", "/", true, false);
+    this->currentINode = this->inodes[inodeIndex];
 
     int dataBlockIndex = this->_findNextFreeData();
     this->bitmapData[dataBlockIndex] = true;
-    rootINode->setDataBlock(dataBlockIndex);
+    this->currentINode->setDataBlock(dataBlockIndex);
 
     char cDataBlock[Block::BLOCK_SIZE] = {'\0'};
     char dataEntry[16] = {'\0'};
 
     //.
-    dataEntry[0] = (char)rootINode->getThisInodeIndex();
+    dataEntry[0] = (char)this->currentINode->getThisInodeIndex();
     dataEntry[1] = '.';
-    appendData(cDataBlock, rootINode->getFilesize(), dataEntry, 16);
-    rootINode->setFilesize(rootINode->getFilesize() + 16);
+    appendData(cDataBlock, this->currentINode->getFilesize(), dataEntry, 16);
+    this->currentINode->setFilesize(this->currentINode->getFilesize() + 16);
 
     //..
-    dataEntry[0] = (char)rootINode->getThisInodeIndex();
+    dataEntry[0] = (char)this->currentINode->getThisInodeIndex();
     dataEntry[2] = '.';
-    appendData(cDataBlock, rootINode->getFilesize(), dataEntry, 16);
-    rootINode->setFilesize(rootINode->getFilesize() + 16);
+    appendData(cDataBlock, this->currentINode->getFilesize(), dataEntry, 16);
+    this->currentINode->setFilesize(this->currentINode->getFilesize() + 16);
 
-    rootINode->addBlockIndex();
+    this->currentINode->addBlockIndex();
     this->_writeData(dataBlockIndex, cDataBlock);
-
-    this->currentINode = rootINode;
 }
 
 void FileSystem::format () {
@@ -458,6 +455,14 @@ void FileSystem::createFile(std::string filePath, std::string username, std::str
     std::string fileName;
     INode* parentINode = this->_findParentINode(filePath, fileName);
 
+    if (fileName.length() < 1 || fileName.length() > 15) {
+        throw "Error: filename too long";
+    }
+
+    if (username.length() > 10 || username.length() > 10) {
+        throw "Error: username or creatorname too long.";
+    }
+
     if (!parentINode->isDir()) throw "create: cannot create: Not a directory";
 
     bool permissions[3] = {false};
@@ -492,10 +497,20 @@ void FileSystem::createFile(std::string filePath, std::string username, std::str
             nrOfBlocks = this->_findDataBlockByFileSize(fileSize, freeData);
         }
 
+        if (newPWD.length() > Block::BLOCK_SIZE) {
+            delete[] freeData;
+            freeData = NULL;
+
+            throw "Error: filepath is too long.";
+        }
+
         INode *newINode = NULL;
         try {
-            newINode = this->_createINode(parentINode->getThisInodeIndex(), fileName, 7, username, username, newPWD, isDir, false);
+            int inodeIndex = this->_createINode(parentINode->getThisInodeIndex(), fileName, 7, username, username, newPWD, isDir, false);
+            newINode = this->inodes[inodeIndex];
         } catch (const char* e) {
+            delete[] freeData;
+            freeData = NULL;
             throw e;
         }
 
@@ -604,24 +619,12 @@ void FileSystem::createFile(std::string filePath, std::string username, std::str
     }
 }
 
-INode *& FileSystem::_createINode(unsigned int parentInodeIndex, std::string filename, unsigned int protection,
-                                  std::string creator, std::string owner, std::string pwd, bool isDir, bool isHidden) {
+int FileSystem::_createINode(unsigned int parentInodeIndex, std::string filename, unsigned int protection,
+                             std::string creator, std::string owner, std::string pwd, bool isDir, bool isHidden) {
     int inodeIndex = this->_findNextFreeInode();
 
     if (inodeIndex == -1) {
-        throw "Error: no free inodes left";
-    }
-
-    if (filename.length() < 1 || filename.length() > 15) {
-        throw "Error: filename too long";
-    }
-
-    if (owner.length() > 10 || creator.length() > 10) {
-        throw "Error: username or creatorname too long.";
-    }
-
-    if (pwd.length() > Block::BLOCK_SIZE) {
-        throw "Error: filepath is too long.";
+        return -1;
     }
 
     //Place inode entry in parent directory
@@ -672,13 +675,9 @@ INode *& FileSystem::_createINode(unsigned int parentInodeIndex, std::string fil
     for(unsigned int i = 0; i < pwd.length(); i++)
         cPwd[i] = pwd[i];
 
-    INode *newINode = new INode(parentInodeIndex, inodeIndex, cFilename, protection, cCreator, cOwner, cPwd, 0, isDir);
-    this->inodes[inodeIndex] = newINode;
+    this->inodes[inodeIndex] = new INode(parentInodeIndex, inodeIndex, cFilename, protection, cCreator, cOwner, cPwd, 0, isDir);
     this->bitmapINodes[inodeIndex] = true;
-
-
-
-    return this->inodes[inodeIndex];
+    return inodeIndex;
 }
 
 int FileSystem::appendData (char* dataBlock, int currentBlockSize, const char* data, int dataSize) {
@@ -1065,8 +1064,14 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
     bool permissions[3] = {false};
     this->_checkPermissions(fromInode->getProtection(), permissions);
 
-    if(!permissions[0])
+    if(!permissions[0]) {
+        delete[] inodeIndexes;
+        inodeIndexes = NULL;
+        delete[] directories;
+        directories = NULL;
+
         throw "Error: permission denied.";
+    }
 
     inodeIndexes = NULL;
     directories = NULL;
@@ -1075,12 +1080,19 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
 
     toInode = this->inodes[inodeIndexes[inodeIndex]];
 
-    if(fromInode == toInode) {
-        throw "use different files";
+    if (inodeIndexes != NULL) {
+        delete[] inodeIndexes;
+        inodeIndexes = NULL;
     }
 
-    delete[] inodeIndexes;
-    delete[] directories;
+    if (directories != NULL) {
+        delete[] directories;
+        directories = NULL;
+    }
+
+    if (fromInode == toInode) {
+        throw "use different files";
+    }
     this->_checkPermissions(toInode->getProtection(), permissions);
 
     if(!permissions[1])
@@ -1136,8 +1148,11 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
             freeFound = false;
     }
 
-    if (!freeFound)
+    if (!freeFound) {
+        delete[] freeDataBlocks;
+        freeDataBlocks = NULL;
         throw "Error: no free data blocks.";
+    }
 
     for (int i = 0; i < nrOfBlocksNeeded; i++) {
         this->bitmapData[freeDataBlocks[i]] = true;
@@ -1173,9 +1188,6 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
     }
 
     toInode->setFilesize(toInode->getFilesize() + fromInode->getFilesize());
-
-
-
     return 0;
 }
 
