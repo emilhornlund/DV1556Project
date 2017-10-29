@@ -792,6 +792,7 @@ std::string FileSystem::cat(std::string &filePath) {
     content.reserve((unsigned long)filesize);
 
     int blockIndex = final->getFirstDataBlockIndex();
+
     content += this->_openData(blockIndex);
 
     blockIndex = final->getNextDataBlockIndex();
@@ -1205,6 +1206,7 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
         throw "Error: filesize toFilePath big.";
 
     int fromBlockIndex = fromInode->getFirstDataBlockIndex();
+
     std::string fromContent = this->_openData(fromBlockIndex);
 
     fromBlockIndex = fromInode->getNextDataBlockIndex();
@@ -1219,11 +1221,14 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
     int toLastTmpBlockIndex = toLastBlockIndex;
     toLastBlockIndex = toInode->getNextDataBlockIndex();
 
+    int nrOfBlocksFromStart = 0;
+
     int toBlockCounter = 1;
     while (toLastBlockIndex != -1) {
         toLastTmpBlockIndex = toLastBlockIndex;
         toLastBlockIndex = toInode->getNextDataBlockIndex();
         toBlockCounter++;
+        nrOfBlocksFromStart++;
     }
 
     int tmpToFileSize = toFileSize;
@@ -1255,12 +1260,12 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
         this->bitmapData[freeDataBlocks[i]] = true;
     }
 
-    char cToLastBlockData[Block::BLOCK_SIZE];
+    char cToLastBlockData[Block::BLOCK_SIZE] = {'\0'};
     std::string toLastBlockData = this->_openData(toLastTmpBlockIndex);
     for (int i = 0; i < Block::BLOCK_SIZE; i++)
         cToLastBlockData[i] = toLastBlockData[i];
 
-    for (int i = tmpToFileSize; i < Block::BLOCK_SIZE; i++)
+    for (int i = tmpToFileSize; i < Block::BLOCK_SIZE && (i - tmpToFileSize) < fromContent.length(); i++)
         cToLastBlockData[i] = fromContent[i - tmpToFileSize];
 
     this->_writeData(toLastTmpBlockIndex, cToLastBlockData);
@@ -1272,13 +1277,22 @@ int FileSystem::appendFile(std::string toFilePath, std::string fromFilePath) {
     delete[] freeDataBlocks;
     freeDataBlocks = NULL;
 
-    int newBlockIndex = toLastTmpBlockIndex + 1;
+    int newBlockIndex = -1;
+    if (nrOfBlocksNeeded > 0) {
+        newBlockIndex = toInode->getFirstDataBlockIndex();
+        for (int i = 0; i < nrOfBlocksFromStart; i++) {
+            newBlockIndex = toInode->getNextDataBlockIndex();
+        }
+        newBlockIndex = toInode->getNextDataBlockIndex();
+    }
+
     int startFrom = byteRemainingTo;
     while (newBlockIndex != -1) {
-        char cDataBlock[Block::BLOCK_SIZE];
-        for (int i = 0; i < Block::BLOCK_SIZE; i++) {
+        char cDataBlock[Block::BLOCK_SIZE] = {'\0'};
+        for (int i = 0; i < Block::BLOCK_SIZE && (startFrom + i) < fromContent.length(); i++) {
             cDataBlock[i] = fromContent[startFrom + i];
         }
+
         this->_writeData(newBlockIndex, cDataBlock);
 
         startFrom += Block::BLOCK_SIZE;
